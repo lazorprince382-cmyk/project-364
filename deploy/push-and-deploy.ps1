@@ -38,7 +38,8 @@ git push origin main
 
 Write-Host "==> Deploying on VPS ..."
 $shPath = "$RemoteDir/deploy/deploy-from-github.sh"
-$remoteCmd = "test -d $RemoteDir/.git || (echo 'Run setup-git-on-vps.sh on VPS first.' >&2; exit 1); sed -i 's/\r`$//' $shPath 2>/dev/null; APP_DIR='$RemoteDir' bash $shPath"
+$deployDir = "$RemoteDir/deploy"
+$remoteCmd = "for f in $deployDir/*.sh; do [ -f `"`$f`" ] && sed -i 's/\r`$//' `"`$f`"; done; test -d $RemoteDir/.git || (echo 'Run setup-git-on-vps.sh on VPS first.' >&2; exit 1); APP_DIR='$RemoteDir' bash $shPath"
 ssh $Vps $remoteCmd
 
 Write-Host ""
