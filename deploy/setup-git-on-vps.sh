@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
 # One-time: link /var/www/ocean-school to GitHub (keeps .env + uploads).
-# Usage on VPS:
-#   export GITHUB_REPO=https://github.com/lazorprince382-cmyk/project-364.git
+#
+# Private repo — set a token before running:
+#   export GITHUB_TOKEN=ghp_your_token_here
 #   bash deploy/setup-git-on-vps.sh
+#
+# Or make the repo public on GitHub (Settings → Danger zone → Change visibility).
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/var/www/ocean-school}"
 REPO="${GITHUB_REPO:-https://github.com/lazorprince382-cmyk/project-364.git}"
 BRANCH="${DEPLOY_BRANCH:-main}"
+
+if [ -n "${GITHUB_TOKEN:-}" ]; then
+  REPO="https://${GITHUB_TOKEN}@github.com/lazorprince382-cmyk/project-364.git"
+fi
 
 if [ -d "${APP_DIR}/.git" ]; then
   echo "Already a git repo: ${APP_DIR}"
@@ -16,7 +23,10 @@ if [ -d "${APP_DIR}/.git" ]; then
 fi
 
 if [ ! -f "${APP_DIR}/.env" ]; then
-  echo "ERROR: ${APP_DIR}/.env not found. Create .env before linking git."
+  echo "ERROR: ${APP_DIR}/.env not found."
+  echo "If clone failed earlier, restore backup:"
+  echo "  ls -d /var/www/ocean-school-backup-*"
+  echo "  cp -a /var/www/ocean-school-backup-XXXX/.env /var/www/ocean-school/  # adjust path"
   exit 1
 fi
 
@@ -33,9 +43,21 @@ if [ -d "${APP_DIR}/uploads" ]; then
   cp -a "${APP_DIR}/uploads/." "${UPLOADS_TMP}/"
 fi
 
-echo "==> Cloning ${REPO} ..."
+CLONE_TMP="$(mktemp -d)"
+echo "==> Cloning ${BRANCH} (private repos need GITHUB_TOKEN or public repo) ..."
+if ! git clone --branch "${BRANCH}" --depth 1 "${REPO}" "${CLONE_TMP}"; then
+  echo ""
+  echo "ERROR: git clone failed."
+  echo "  1) Make repo public: github.com/lazorprince382-cmyk/project-364 → Settings → Change visibility"
+  echo "  2) Or: export GITHUB_TOKEN=ghp_xxx   (GitHub → Settings → Developer settings → PAT)"
+  echo "Backup kept at: ${BACKUP}"
+  rm -rf "${CLONE_TMP}"
+  exit 1
+fi
+
+echo "==> Installing clone into ${APP_DIR} ..."
 rm -rf "${APP_DIR}"
-git clone --branch "${BRANCH}" --depth 1 "${REPO}" "${APP_DIR}"
+mv "${CLONE_TMP}" "${APP_DIR}"
 
 cp -a "${ENV_TMP}" "${APP_DIR}/.env"
 rm -f "${ENV_TMP}"
@@ -58,5 +80,5 @@ fi
 pm2 save
 
 echo ""
-echo "GitHub linked. Backup kept at: ${BACKUP}"
-echo "Future deploys: git pull or bash deploy/deploy-from-github.sh"
+echo "GitHub linked. Backup: ${BACKUP}"
+echo "Future deploys: bash deploy/deploy-from-github.sh"

@@ -42,11 +42,24 @@ scp deploy/setup-git-on-vps.sh root@185.214.134.41:/var/www/ocean-school/deploy/
 scp deploy/deploy-from-github.sh root@185.214.134.41:/var/www/ocean-school/deploy/
 ```
 
-**Private repo:** on the VPS use a [deploy key](https://docs.github.com/en/authentication/connecting-to-github-with-ssh) or HTTPS with a token:
+**Private repo (VPS will ask for username/password):** GitHub no longer accepts account passwords for `git clone`. Use either:
+
+**Option A — Make repo public (easiest)**  
+GitHub → **project-364** → **Settings** → **Danger zone** → **Change visibility** → Public.
+
+**Option B — Personal access token on VPS**
 
 ```bash
-git clone https://YOUR_TOKEN@github.com/lazorprince382-cmyk/project-364.git
+export GITHUB_TOKEN=ghp_paste_your_token_here
+bash deploy/setup-git-on-vps.sh
 ```
+
+Create token: GitHub → **Settings** → **Developer settings** → **Personal access tokens** → Generate (scope: `repo`).
+
+At the `Username for 'https://github.com':` prompt (if you see it):
+
+- **Username:** `lazorprince382-cmyk`
+- **Password:** paste the **token** (not your GitHub login password)
 
 ---
 
