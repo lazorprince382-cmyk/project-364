@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Classes — THE OCEAN OF KNOWLEDGE SCHOOL</title>
+    <link rel="stylesheet" href="/css/main.css" />
+    <link rel="stylesheet" href="/css/classes-ocean.css?v=20260531c" />
+  </head>
+  <body class="page-classes page-classes-ocean">
+    <div class="shell">
+      <div class="back-row">
+        <a href="/">← Home</a>
+      </div>
+      <div class="panel">
+        <header class="classes-ocean-head">
+          <div class="classes-ocean-head-text">
+            <h1 class="classes-page-title">Classes</h1>
+            <p class="classes-page-lead">Select a class or role, then sign in with your staff account.</p>
+          </div>
+          <label class="classes-search-wrap">
+            <input
+              id="classes-search"
+              type="search"
+              placeholder="Search classes..."
+              autocomplete="off"
+              aria-label="Search classes"
+            />
+            <svg class="classes-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.5-3.5" />
+            </svg>
+          </label>
+        </header>
+        <div id="cards" class="grid-cards classes-ocean-grid"></div>
+      </div>
+    </div>
+
+    <div id="stream-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="stream-title">
+      <div class="modal">
+        <h3 id="stream-title">Choose a stream</h3>
+        <p id="stream-desc" style="color: var(--muted); font-size: 0.9rem; margin-top: 0"></p>
+        <div id="stream-btns" class="stream-btns"></div>
+        <button type="button" class="btn" style="margin-top: 1rem; width: 100%" id="stream-cancel">
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <div id="skill-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="skill-title">
+      <div class="modal">
+        <h3 id="skill-title">Choose a skill subject</h3>
+        <p id="skill-desc" style="color: var(--muted); font-size: 0.9rem; margin-top: 0">
+          Manage uploads, learner progress, and comments for your subject across the school.
+        </p>
+        <div id="skill-btns" class="stream-btns"></div>
+        <button type="button" class="btn" style="margin-top: 1rem; width: 100%" id="skill-cancel">Cancel</button>
+      </div>
+    </div>
+
+    <div
+      id="class-signin-overlay"
+      class="modal-overlay class-signin-overlay"
+      aria-hidden="true"
+      aria-labelledby="class-signin-title"
+    >
+      <div class="class-signin-card" role="dialog" aria-modal="true">
+        <button type="button" class="class-signin-close" id="class-signin-close" aria-label="Close sign in">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+        <div class="class-signin-lock" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        </div>
+        <h2 id="class-signin-title">Sign in to open this class</h2>
+        <p id="class-signin-subtitle" class="class-signin-subtitle">Use your school email and password to continue.</p>
+        <form id="class-signin-form" class="class-signin-form" novalidate>
+          <div class="class-signin-field">
+            <label class="class-signin-label" for="class-signin-email">Email</label>
+            <div class="class-signin-input-wrap">
+              <span class="class-signin-input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+              </span>
+              <input id="class-signin-email" name="email" type="email" autocomplete="username" placeholder="you@school.com" required />
+            </div>
+          </div>
+          <div class="class-signin-field">
+            <label class="class-signin-label" for="class-signin-password">Password</label>
+            <div class="class-signin-input-wrap class-signin-input-wrap--password">
+              <span class="class-signin-input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+              </span>
+              <input
+                id="class-signin-password"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+          </div>
+          <div class="class-signin-row">
+            <label class="class-signin-remember">
+              <input type="checkbox" id="class-signin-remember" checked />
+              <span>Remember me</span>
+            </label>
+            <button type="button" class="class-signin-forgot" id="class-signin-forgot">Forgot password?</button>
+          </div>
+          <p id="class-signin-err" class="class-signin-err" hidden></p>
+          <button type="submit" class="class-signin-submit">
+            Sign in
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+          <p class="class-signin-or"><span>or</span></p>
+          <button type="button" class="class-signin-cancel" id="class-signin-cancel">Cancel</button>
+        </form>
+      </div>
+    </div>
+
+    <script src="/js/staff-auth.js?v=20260531d"></script>
+    <script src="/js/password-field.js?v=20260531a"></script>
+    <script src="/js/classes-signin.js?v=20260531c"></script>
+    <script src="/js/brand.js"></script>
+    <script src="/js/classes-config.js?v=20260531a"></script>
+    <script src="/js/classes-cards.js?v=20260531a"></script>
+    <script>
+      const auth = window.OceanStaffAuth;
+      const pageAuth = window.ClassesPageAuth;
+
+      (function () {
+        const q = new URLSearchParams(window.location.search);
+        if (q.get('leave') === '1') {
+          auth.clearSession();
+          window.history.replaceState({}, '', '/classes.html');
+          return;
+        }
+        const staff = auth.getStoredStaff();
+        const token = sessionStorage.getItem(auth.TOKEN_KEY);
+        if (token && staff && (staff.role === 'director' || staff.role === 'head_teacher')) {
+          auth.clearSession();
+        }
+      })();
+
+      const cardsEl = document.getElementById('cards');
+      const modal = document.getElementById('stream-modal');
+      const streamBtns = document.getElementById('stream-btns');
+      const streamTitle = document.getElementById('stream-title');
+      const streamDesc = document.getElementById('stream-desc');
+      let pendingClassId = null;
+
+      function classDashboardTarget(classId, stream) {
+        const q = new URLSearchParams({ class: classId });
+        if (stream) q.set('stream', stream);
+        return '/dashboard.html?' + q.toString();
+      }
+
+      function openDashboard(classId, stream) {
+        pageAuth.requestAccess('class', classDashboardTarget(classId, stream));
+      }
+
+      function showStreamPicker(cfg) {
+        pendingClassId = cfg.id;
+        streamTitle.textContent = cfg.title + ' — pick a stream';
+        streamDesc.textContent = cfg.blurb;
+        streamBtns.innerHTML = '';
+        cfg.streams.forEach(function (s) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'btn btn-primary';
+          b.textContent = s.label;
+          b.addEventListener('click', function () {
+            modal.classList.remove('open');
+            openDashboard(pendingClassId, s.id);
+          });
+          streamBtns.appendChild(b);
+        });
+        modal.classList.add('open');
+      }
+
+      document.getElementById('stream-cancel').addEventListener('click', function () {
+        modal.classList.remove('open');
+        pendingClassId = null;
+      });
+
+      const skillModal = document.getElementById('skill-modal');
+      const skillBtns = document.getElementById('skill-btns');
+      const skillTitle = document.getElementById('skill-title');
+      const skillDesc = document.getElementById('skill-desc');
+
+      function openSkillDashboard(skillId) {
+        const target = '/skill-dashboard.html?skill=' + encodeURIComponent(skillId);
+        pageAuth.requestAccess('skill', target);
+      }
+
+      function showSkillPicker(cfg) {
+        skillTitle.textContent = cfg.title + ' — pick your subject';
+        skillDesc.textContent = cfg.blurb;
+        skillBtns.innerHTML = '';
+        cfg.skills.forEach(function (s) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'btn btn-primary';
+          b.textContent = s.label;
+          b.addEventListener('click', function () {
+            skillModal.classList.remove('open');
+            openSkillDashboard(s.id);
+          });
+          skillBtns.appendChild(b);
+        });
+        skillModal.classList.add('open');
+      }
+
+      document.getElementById('skill-cancel').addEventListener('click', function () {
+        skillModal.classList.remove('open');
+      });
+
+      function mapApiCatalogToCards(rows) {
+        return (rows || []).map(function (r) {
+          const fallback = window.OceanClassesCards
+            ? window.OceanClassesCards.defaultBlurb({ id: r.id, needsStream: !!r.needsStream })
+            : r.needsStream
+              ? 'Select your class stream to continue.'
+              : 'Learners, marks, notes, and reports.';
+          return {
+            id: r.id,
+            title: r.title || r.id,
+            blurb: fallback,
+            needsStream: !!r.needsStream,
+            streams: (r.streams || []).map(function (s) {
+              return { id: s, label: s };
+            }),
+          };
+        });
+      }
+
+      function onClassCardClick(cfg) {
+        if (cfg.kind === 'head') {
+          pageAuth.requestAccess('head', '/head-dashboard.html');
+          return;
+        }
+        if (cfg.needsSkillPick) showSkillPicker(cfg);
+        else if (cfg.needsStream) showStreamPicker(cfg);
+        else openDashboard(cfg.id, '');
+      }
+
+      function appendClassCard(cfg) {
+        const card = window.OceanClassesCards.renderClassCard(cfg, onClassCardClick);
+        cardsEl.appendChild(card);
+      }
+
+      async function loadClassCards() {
+        let source = OCEAN_CLASSES || [];
+        try {
+          const res = await fetch('/api/class-catalog');
+          if (res.ok) {
+            const rows = await res.json();
+            const mapped = mapApiCatalogToCards(rows);
+            if (mapped.length) {
+              source = mapped.concat(
+                (OCEAN_CLASSES || []).filter(function (x) {
+                  return x.id === 'skills';
+                })
+              );
+            }
+          }
+        } catch (_) {}
+
+        appendClassCard({
+          kind: 'head',
+          id: 'head_teacher',
+          title: 'Head teacher',
+          blurb: 'School overview, class access, comment review, and staff messaging.',
+        });
+
+        source.forEach(function (cfg) {
+          appendClassCard(cfg);
+        });
+
+        window.OceanClassesCards.bindSearch(cardsEl);
+      }
+
+      loadClassCards();
+    </script>
+    <script src="/js/settings.js"></script>
+  </body>
+</html>

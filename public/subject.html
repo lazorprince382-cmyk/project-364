@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Subject — THE OCEAN OF KNOWLEDGE SCHOOL</title>
+    <link rel="stylesheet" href="/css/main.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+    <script src="/js/brand.js"></script>
+    <script src="/js/settings.js"></script>
+    <script src="/js/subject.js" defer></script>
+  </head>
+  <body>
+    <div class="shell" style="padding-top: 1.5rem">
+      <div class="shell-brand">
+        <img src="/images/ocean-school-logo.png" width="48" height="48" alt="" />
+        <span class="school-name">THE OCEAN OF KNOWLEDGE SCHOOL</span>
+      </div>
+      <div class="back-row">
+        <a id="back-dash" href="#">← Back to dashboard</a>
+      </div>
+
+      <div class="panel" style="margin-bottom: 1rem">
+        <h2 id="subj-title" style="margin-bottom: 0.25rem">Subject</h2>
+        <p id="subj-meta" style="margin: 0; color: var(--muted); font-size: 0.95rem"></p>
+      </div>
+
+      <div id="flash"></div>
+
+      <div class="panel" style="margin-bottom: 1rem">
+        <h3 style="margin-top: 0; font-size: 1.05rem">Work &amp; schemes for this subject</h3>
+        <p style="color: var(--muted); font-size: 0.9rem; margin-top: 0">
+          Documents uploaded from the class dashboard <strong>Notes</strong> tab with this subject selected. Use
+          <strong>View</strong> for a preview below (expand for a larger pane), <strong>Download</strong> to save a copy,
+          <strong>Replace with new file</strong> after editing offline, or <strong>Delete</strong> to remove from the server.
+        </p>
+        <div style="margin-bottom: 0.75rem">
+          <label for="work-term-filter" style="display: inline; margin-right: 0.5rem">Term</label>
+          <select id="work-term-filter">
+            <option value="">All terms</option>
+            <option value="1">Term 1</option>
+            <option value="2">Term 2</option>
+            <option value="3">Term 3</option>
+          </select>
+        </div>
+        <ul id="subject-doc-list" class="doc-list"></ul>
+        <div id="subject-doc-preview-wrap" class="subject-doc-preview-wrap" hidden>
+          <div class="subject-doc-preview-head">
+            <div>
+              <strong id="subject-doc-preview-heading">Preview</strong>
+              <p id="subject-doc-preview-meta" class="subject-doc-preview-meta"></p>
+            </div>
+            <div class="subject-doc-preview-head-btns">
+              <button type="button" class="btn" id="subject-doc-preview-expand" aria-expanded="false">
+                Expand
+              </button>
+              <button type="button" class="btn" id="subject-doc-preview-close">Close</button>
+            </div>
+          </div>
+          <div id="subject-doc-preview-body" class="subject-doc-preview-body"></div>
+          <div class="subject-doc-preview-toolbar">
+            <p class="subject-doc-preview-hint">
+              <strong>Word (.doc/.docx):</strong> with OnlyOffice (see <code>.env.example</code> + <code>docker compose up</code>) the layout matches Microsoft Word and you can edit and save here.
+              Without it, a simple HTML preview is shown (formatting may shift). PDFs open in the built-in viewer. You can always change the <strong>title</strong> or <strong>replace the file</strong> after editing offline.
+            </p>
+            <div class="subject-doc-preview-edit-row">
+              <label class="subject-doc-preview-label" for="subject-doc-title-input">Title</label>
+              <input type="text" id="subject-doc-title-input" class="subject-doc-title-input" maxlength="300" />
+              <button type="button" class="btn btn-primary" id="subject-doc-save-title">Save title</button>
+            </div>
+            <div class="subject-doc-preview-edit-row">
+              <input type="file" id="subject-doc-replace-file" class="subject-doc-replace-file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.webp" hidden />
+              <button type="button" class="btn" id="subject-doc-replace-trigger">Replace with new file…</button>
+              <span id="subject-doc-replace-status" class="subject-doc-replace-status"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 style="margin-top: 0; font-size: 1.05rem">Strong &amp; weak learners</h3>
+        <p style="color: var(--muted); font-size: 0.9rem; margin-top: 0">
+          Set each learner’s standing for <strong>this subject only</strong>. Charts include a <em>Not rated</em> slice until everyone is rated.
+        </p>
+
+        <div class="charts-row">
+          <div class="chart-box">
+            <h4>Class overview (pie)</h4>
+            <div class="chart-canvas-wrap">
+              <canvas id="chart-pie" aria-label="Pie chart of learner standing"></canvas>
+            </div>
+          </div>
+          <div class="chart-box">
+            <h4>Distribution (bar)</h4>
+            <div class="chart-canvas-wrap">
+              <canvas id="chart-bar" aria-label="Bar chart of learner standing"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <h4 style="margin: 1rem 0 0.5rem; font-size: 1rem">Rate learners</h4>
+        <div class="table-wrap">
+          <table class="band-table">
+            <thead>
+              <tr>
+                <th>Learner</th>
+                <th>Reg No.</th>
+                <th>Standing</th>
+              </tr>
+            </thead>
+            <tbody id="band-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </body>
+</html>

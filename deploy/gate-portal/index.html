@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>School systems — gate</title>
+    <style>
+      :root {
+        --bg: #0b1220;
+        --card: #121a2b;
+        --line: #243049;
+        --text: #e8eefc;
+        --muted: #9fb0d0;
+        --accent: #3b82f6;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+        background: radial-gradient(circle at top, #15213a, var(--bg) 55%);
+        color: var(--text);
+        display: grid;
+        place-items: center;
+        padding: 2rem 1rem;
+      }
+      .shell { width: min(720px, 100%); }
+      h1 { margin: 0 0 0.35rem; font-size: 1.75rem; }
+      p.lead { margin: 0 0 1.5rem; color: var(--muted); }
+      .grid { display: grid; gap: 1rem; }
+      a.card {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 1.1rem 1.2rem;
+        transition: border-color 0.15s, transform 0.15s;
+      }
+      a.card:hover { border-color: var(--accent); transform: translateY(-1px); }
+      .card h2 { margin: 0 0 0.35rem; font-size: 1.1rem; }
+      .card p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+      .tag {
+        display: inline-block;
+        margin-top: 0.65rem;
+        font-size: 0.8rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 999px;
+        background: #1b2740;
+        color: #b9c9ea;
+      }
+      footer { margin-top: 1.5rem; color: var(--muted); font-size: 0.85rem; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <h1>Systems gate</h1>
+      <p class="lead">Choose which application to open on this server.</p>
+      <div class="grid">
+        <a class="card" href="http://YOUR_DOMAIN_OR_IP:3001/">
+          <h2>Ocean School</h2>
+          <p>Learners, reports, director and teacher dashboards.</p>
+          <span class="tag">Port 3001</span>
+        </a>
+        <a class="card" href="http://YOUR_DOMAIN_OR_IP:3002/">
+          <h2>Kitchen</h2>
+          <p>Kitchen / meals system.</p>
+          <span class="tag">Port 3002</span>
+        </a>
+        <a class="card" href="http://YOUR_DOMAIN_OR_IP:4000/">
+          <h2>App on 4000</h2>
+          <p>Your next service (gate module or other app).</p>
+          <span class="tag">Port 4000</span>
+        </a>
+      </div>
+      <footer>VPS apps hub</footer>
+    </div>
+  </body>
+</html>

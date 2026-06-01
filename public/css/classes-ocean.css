@@ -1,0 +1,581 @@
+/**
+ * Classes landing — Clear Ocean card layout
+ */
+body.page-classes.page-classes-ocean {
+  --co-bg: #050a18;
+  --co-card: #0c1224;
+  --co-card-border: rgba(59, 130, 246, 0.22);
+  --co-blue: #3b82f6;
+  --co-blue-glow: rgba(59, 130, 246, 0.45);
+  --co-text: #f8fafc;
+  --co-muted: #94a3b8;
+  --co-red: #e11d48;
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: var(--co-text);
+  background-color: #031826;
+  background-image:
+    linear-gradient(165deg, rgba(2, 18, 32, 0.92) 0%, rgba(3, 36, 52, 0.78) 42%, rgba(2, 22, 34, 0.88) 72%, rgba(3, 24, 38, 0.93) 100%),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.1) 0%, transparent 50%, rgba(2, 12, 22, 0.45) 100%),
+    url('/images/ocean-staff-hero.png');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+body.page-classes.page-classes-ocean .shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1.75rem 1.5rem 2.5rem;
+}
+
+body.page-classes.page-classes-ocean .back-row a {
+  color: #93c5fd;
+  font-size: 0.88rem;
+}
+
+body.page-classes.page-classes-ocean .panel {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.classes-ocean-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.classes-ocean-head-text {
+  min-width: min(100%, 280px);
+}
+
+body.page-classes.page-classes-ocean .classes-page-title {
+  margin: 0 0 0.4rem;
+  font-size: clamp(1.75rem, 4vw, 2.15rem);
+  font-weight: 700;
+  color: var(--co-text);
+  letter-spacing: -0.02em;
+}
+
+body.page-classes.page-classes-ocean .classes-page-lead {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--co-muted);
+  max-width: 36ch;
+}
+
+body.page-classes.page-classes-ocean .classes-page-lead strong {
+  color: #cbd5e1;
+  font-weight: 500;
+}
+
+.classes-search-wrap {
+  position: relative;
+  flex: 1 1 220px;
+  max-width: 320px;
+  margin-left: auto;
+}
+
+.classes-search-wrap input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 2.5rem 0.65rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(15, 23, 42, 0.85);
+  color: var(--co-text);
+  font-size: 0.92rem;
+  outline: none;
+}
+
+.classes-search-wrap input::placeholder {
+  color: #64748b;
+}
+
+.classes-search-wrap input:focus {
+  border-color: rgba(59, 130, 246, 0.55);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.classes-search-icon {
+  position: absolute;
+  right: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.classes-ocean-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.1rem;
+}
+
+@media (max-width: 960px) {
+  .classes-ocean-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .classes-ocean-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+body.page-classes.page-classes-ocean .class-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 1fr auto;
+  gap: 0 1rem;
+  align-items: start;
+  min-height: 132px;
+  padding: 1.15rem 1.15rem 1rem;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 14px;
+  border: 1px solid var(--co-card-border);
+  background:
+    linear-gradient(135deg, rgba(30, 58, 138, 0.12) 0%, rgba(12, 18, 36, 0.95) 45%, rgba(8, 12, 24, 1) 100%);
+  box-shadow:
+    inset 3px 0 18px rgba(59, 130, 246, 0.22),
+    inset 0 1px 0 rgba(148, 163, 184, 0.06),
+    0 10px 28px rgba(0, 0, 0, 0.35);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+body.page-classes.page-classes-ocean .class-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(59, 130, 246, 0.45);
+  box-shadow:
+    inset 4px 0 22px rgba(59, 130, 246, 0.35),
+    0 14px 32px rgba(0, 0, 0, 0.45);
+}
+
+body.page-classes.page-classes-ocean .class-card:focus-visible {
+  outline: 2px solid var(--co-blue);
+  outline-offset: 2px;
+}
+
+body.page-classes.page-classes-ocean .class-card.is-hidden {
+  display: none;
+}
+
+.class-card-icon {
+  grid-row: 1 / span 2;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: radial-gradient(circle at 35% 30%, #2563eb 0%, #1e3a8a 55%, #0f172a 100%);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+
+.class-card-icon svg {
+  width: 26px;
+  height: 26px;
+  stroke: #fff;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.class-card-body {
+  min-width: 0;
+  padding-top: 0.1rem;
+}
+
+body.page-classes.page-classes-ocean .class-card h3,
+body.page-classes.page-classes-ocean .class-card .class-card-title {
+  margin: 0 0 0.45rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--co-text);
+  line-height: 1.25;
+}
+
+body.page-classes.page-classes-ocean .class-card p,
+body.page-classes.page-classes-ocean .class-card .class-card-desc {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--co-muted);
+}
+
+.class-card-go {
+  grid-column: 2;
+  justify-self: end;
+  align-self: end;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(59, 130, 246, 0.55);
+  background: rgba(8, 14, 28, 0.9);
+  color: #e2e8f0;
+  font-size: 1.1rem;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+body.page-classes.page-classes-ocean .class-card:hover .class-card-go {
+  background: rgba(37, 99, 235, 0.35);
+  border-color: rgba(147, 197, 253, 0.75);
+}
+
+.class-card-go svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.25;
+}
+
+body.page-classes.page-classes-ocean .class-signin-overlay {
+  background: rgba(3, 8, 18, 0.82);
+  backdrop-filter: blur(6px);
+}
+
+body.page-classes.page-classes-ocean .modal {
+  background: #0f1628;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 14px;
+}
+
+body.page-classes.page-classes-ocean .btn-primary {
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  border-color: rgba(248, 113, 113, 0.5);
+}
+
+/* —— Class sign-in modal (Clear Ocean) —— */
+body.page-classes.page-classes-ocean .class-signin-card {
+  position: relative;
+  width: min(100%, 420px);
+  margin: 0;
+  padding: 2rem 1.75rem 1.65rem;
+  text-align: center;
+  background: linear-gradient(180deg, #0c1428 0%, #080e1c 100%);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: 1.35rem;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(59, 130, 246, 0.08) inset;
+}
+
+.class-signin-close {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.class-signin-close:hover {
+  color: #e2e8f0;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.class-signin-close svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.class-signin-lock {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(59, 130, 246, 0.65);
+  background: rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 24px rgba(59, 130, 246, 0.2);
+}
+
+.class-signin-lock svg {
+  width: 26px;
+  height: 26px;
+  stroke: #fff;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+body.page-classes.page-classes-ocean .class-signin-card h2 {
+  margin: 0 0 0.45rem;
+  font-size: 1.28rem;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.3;
+}
+
+body.page-classes.page-classes-ocean .class-signin-subtitle {
+  margin: 0 0 1.35rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: #94a3b8;
+}
+
+.class-signin-form {
+  text-align: left;
+}
+
+.class-signin-field {
+  margin-bottom: 1rem;
+}
+
+.class-signin-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.class-signin-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.class-signin-input-icon {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: #64748b;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.class-signin-input-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.class-signin-input-wrap input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.72rem 0.85rem 0.72rem 2.65rem;
+  border-radius: 10px;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  background: rgba(8, 14, 28, 0.9);
+  color: #f1f5f9;
+  font-size: 0.92rem;
+  outline: none;
+}
+
+.class-signin-input-wrap input::placeholder {
+  color: #475569;
+}
+
+.class-signin-input-wrap input:focus {
+  border-color: rgba(96, 165, 250, 0.75);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
+.class-signin-input-wrap--password {
+  display: block;
+}
+
+.class-signin-input-wrap--password .password-field-wrap {
+  width: 100%;
+  position: relative;
+}
+
+.class-signin-input-wrap--password .password-field-wrap input {
+  width: 100%;
+  padding-left: 2.65rem;
+  padding-right: 2.75rem;
+}
+
+body.page-classes.page-classes-ocean .class-signin-card .password-toggle-btn {
+  right: 0.55rem;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 0;
+  color: #64748b;
+  background: transparent;
+  border-radius: 6px;
+}
+
+body.page-classes.page-classes-ocean .class-signin-card .password-toggle-btn::before {
+  content: '';
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: auto;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'%3E%3Cpath d='M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.class-signin-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0.25rem 0 1.1rem;
+  flex-wrap: wrap;
+}
+
+.class-signin-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  cursor: pointer;
+  user-select: none;
+}
+
+.class-signin-remember input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--co-blue);
+  cursor: pointer;
+}
+
+.class-signin-forgot {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #60a5fa;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.class-signin-forgot:hover {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+.class-signin-err {
+  margin: 0 0 0.85rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: #fecaca;
+  background: rgba(220, 38, 38, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.class-signin-submit {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.82rem 1.25rem;
+  border: none;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(180deg, #f43f5e 0%, #e11d48 45%, #be123c 100%);
+  box-shadow: 0 8px 24px rgba(225, 29, 72, 0.4);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.class-signin-submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(225, 29, 72, 0.5);
+}
+
+.class-signin-submit svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.class-signin-or {
+  position: relative;
+  margin: 1.1rem 0 1rem;
+  text-align: center;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.class-signin-or::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(148, 163, 184, 0.2);
+}
+
+.class-signin-or span {
+  position: relative;
+  padding: 0 0.65rem;
+  background: #0b1224;
+}
+
+body.page-classes.page-classes-ocean .class-signin-cancel {
+  width: 100%;
+  margin: 0;
+  padding: 0.78rem 1.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  background: transparent;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+body.page-classes.page-classes-ocean .class-signin-cancel:hover {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(147, 197, 253, 0.55);
+}

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Director sign in — THE OCEAN OF KNOWLEDGE SCHOOL</title>
+    <link rel="stylesheet" href="/css/main.css" />
+  </head>
+  <body class="page-admin">
+    <div class="admin-split">
+      <div class="admin-split-panel">
+        <div class="shell" style="padding-top: 3rem">
+          <div class="shell-brand">
+            <img src="/images/ocean-school-logo.png" width="52" height="52" alt="" />
+            <span class="school-name">THE OCEAN OF KNOWLEDGE SCHOOL</span>
+          </div>
+          <div class="back-row"><a href="/">← Back to home</a></div>
+          <div class="panel" style="max-width: 420px; margin: 0 auto">
+            <h2 id="login-title">Director sign in</h2>
+            <p id="login-subtitle" style="color: var(--muted); font-size: 0.95rem; margin-top: 0.5rem"></p>
+            <p id="login-file-warning" style="color: var(--brand-red-soft); font-size: 0.9rem; display: none"></p>
+            <form id="login-form" class="form-grid" style="margin-top: 1.25rem">
+              <div>
+                <label for="login-email">Email</label>
+                <input id="login-email" name="email" type="email" autocomplete="username" required />
+              </div>
+              <div>
+                <label for="login-password">Password</label>
+                <input id="login-password" name="password" type="password" autocomplete="current-password" required />
+              </div>
+              <button type="submit" class="btn btn-primary">Sign in</button>
+            </form>
+            <p id="login-err" style="color: var(--brand-red-soft); margin-top: 1rem; display: none"></p>
+          </div>
+        </div>
+      </div>
+      <div class="admin-split-photo" role="img" aria-label="The Ocean of Knowledge School campus"></div>
+    </div>
+    <script src="/js/brand.js"></script>
+    <script src="/js/staff-auth.js?v=20260531d"></script>
+    <script src="/js/password-field.js?v=20260531a"></script>
+    <script>
+      OceanStaffAuth.mountLoginPage({
+        allowedRoles: ['director', 'ghost'],
+        loginPath: '/admin.html',
+        defaultNext: '/director-dashboard.html',
+        title: 'Director sign in',
+        subtitle: 'Use your school email and password.',
+        wrongRoleError: 'This page is for director accounts only.',
+      });
+    </script>
+  </body>
+</html>

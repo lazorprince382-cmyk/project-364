@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Head teacher — THE OCEAN OF KNOWLEDGE SCHOOL</title>
+    <link rel="stylesheet" href="/css/main.css?v=20260529a" />
+    <link rel="stylesheet" href="/css/dashboard-app.css?v=20260531e" />
+    <link rel="stylesheet" href="/css/clear-ocean-ui.css?v=20260531a" />
+    <link rel="stylesheet" href="/css/class-page1.css?v=20260529a" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  </head>
+  <body class="app-dash app-head">
+    <div class="dash-shell">
+      <aside class="dash-sidebar" aria-label="Head teacher navigation">
+        <div class="dash-brand">
+          <img class="dash-brand-logo" src="/images/ocean-school-logo.png" width="52" height="52" alt="" />
+          <div class="dash-brand-text">
+            <span class="dash-brand-name">THE OCEAN OF KNOWLEDGE SCHOOL</span>
+            <span class="dash-brand-sub">Head teacher workspace</span>
+          </div>
+        </div>
+        <div class="dash-sidebar-user">
+          <img id="profile-bar-avatar" class="profile-bar-avatar" alt="" style="display: none" width="48" height="48" />
+          <div>
+            <div style="font-size: 0.75rem; color: var(--muted)">Signed in as</div>
+            <div id="profile-bar-name" style="font-weight: 600; font-size: 0.92rem">Head teacher</div>
+          </div>
+        </div>
+        <nav class="dash-nav" role="navigation" aria-label="Sections">
+          <a href="/classes.html" class="dash-nav-back">← All classes</a>
+          <button type="button" class="tab dash-nav-btn active" data-tab="overview">Overview</button>
+          <button type="button" class="tab dash-nav-btn" data-tab="head-comments">Head comments</button>
+          <button type="button" class="tab dash-nav-btn" data-tab="comment-review">Comment review</button>
+          <button type="button" class="tab dash-nav-btn" data-tab="reports">Reports</button>
+          <button type="button" class="tab dash-nav-btn" data-tab="messages">Messages</button>
+          <button type="button" class="tab dash-nav-btn" data-tab="staff">Staff &amp; accounts</button>
+          <button type="button" class="tab dash-nav-btn" data-tab="settings">Settings</button>
+        </nav>
+        <div class="dash-sidebar-foot">
+          <a href="/index.html" class="dash-nav-muted">Home</a>
+        </div>
+      </aside>
+
+      <div class="dash-main">
+        <header class="dash-topbar">
+          <span class="dash-topbar-class" id="head-topbar-title" aria-live="polite">Head teacher</span>
+          <div class="dash-topbar-actions">
+            <div class="dash-notify-wrap">
+              <button
+                type="button"
+                class="dash-notify-btn"
+                id="dash-notify-btn"
+                aria-expanded="false"
+                aria-controls="dash-notify-dropdown"
+                aria-label="Notifications"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+              </button>
+              <span id="dash-notify-badge" class="dash-badge" hidden>0</span>
+              <div id="dash-notify-dropdown" class="dash-dropdown" hidden></div>
+            </div>
+          </div>
+        </header>
+
+        <div class="dash-main-inner">
+          <header class="dash-page-head">
+            <div class="dash-welcome-banner" data-ocean-welcome="head">
+              <p class="dash-welcome-kicker" id="dash-welcome-title">Welcome</p>
+              <p class="dash-welcome-quote" id="dash-welcome-sub" aria-live="polite"></p>
+            </div>
+            <h1 id="head-dash-title">Head teacher</h1>
+            <p id="head-dash-sub">
+              Track class groups, manage school accounts, and handle head comments plus school-wide review workflows.
+            </p>
+          </header>
+
+          <div class="dash-stats" aria-label="School overview">
+            <div class="dash-stat-card">
+              <div class="dash-stat-value" id="stat-head-learners">—</div>
+              <div class="dash-stat-label">Learners (school)</div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-value" id="stat-head-groups">—</div>
+              <div class="dash-stat-label">Class groups</div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-value" id="stat-head-comments-done">—</div>
+              <div class="dash-stat-label">Head comments (selected slot)</div>
+            </div>
+          </div>
+
+          <div id="flash"></div>
+
+          <div class="dash-tabs-wrap">
+            <div class="tabs" role="tablist" aria-label="Section tabs">
+              <button type="button" class="tab active" data-tab="overview">Overview</button>
+              <button type="button" class="tab" data-tab="head-comments">Head comments</button>
+              <button type="button" class="tab" data-tab="comment-review">Comment review</button>
+              <button type="button" class="tab" data-tab="reports">Reports</button>
+              <button type="button" class="tab" data-tab="messages">Messages</button>
+              <button type="button" class="tab" data-tab="staff">Staff &amp; accounts</button>
+              <button type="button" class="tab" data-tab="settings">Settings</button>
+            </div>
+          </div>
+
+          <div id="panel-overview" class="tab-panel active panel dash-panel-pad">
+            <p class="js-optional-tip" style="color: var(--muted); font-size: 0.95rem; margin-top: 0">
+              Each row is a <strong>class group</strong> (same as on the Classes page). Open a class dashboard to see day-to-day
+              work; use <strong>Head comments</strong> for the narrative that fills the last column on that class’s wide export
+              (<em>Head Caregiver’s comment</em> for nursery; <em>Head Teacher’s comment</em> for Primary One and Two).
+            </p>
+            <div class="table-wrap" style="margin-top: 1rem">
+              <table class="data">
+                <thead>
+                  <tr>
+                    <th>Class group</th>
+                    <th>Learners</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="head-overview-body"></tbody>
+              </table>
+            </div>
+            <section class="dash-card" style="margin-top: 1rem">
+              <h3 class="dash-card-title">Learner movement and class creation</h3>
+              <p class="dir-muted">Head teacher can promote, demote, transfer learners, and create primary classes.</p>
+              <div class="form-grid" style="max-width:none; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr))">
+                <div><label for="hd-mv-from-class">From class</label><select id="hd-mv-from-class"></select></div>
+                <div><label for="hd-mv-from-stream">From stream</label><select id="hd-mv-from-stream"></select></div>
+                <div>
+                  <label for="hd-mv-action">Action</label>
+                  <select id="hd-mv-action">
+                    <option value="promote">Promote</option>
+                    <option value="demote">Demote</option>
+                    <option value="transfer">Transfer</option>
+                  </select>
+                </div>
+                <div><label for="hd-mv-target-class">To class</label><select id="hd-mv-target-class"></select></div>
+                <div><label for="hd-mv-target-stream">To stream</label><select id="hd-mv-target-stream"></select></div>
+                <div><label for="hd-mv-year">Effective year</label><input id="hd-mv-year" type="number" min="2000" max="2100" /></div>
+              </div>
+              <div style="margin-top:0.55rem">
+                <label for="hd-mv-learners">Learners</label>
+                <select id="hd-mv-learners" multiple size="8" style="width:100%"></select>
+              </div>
+              <div style="display:flex; gap:0.5rem; align-items:center; margin-top:0.6rem; flex-wrap:wrap">
+                <button type="button" class="btn btn-primary" id="hd-mv-apply">Apply movement</button>
+                <span id="hd-mv-status" class="dir-muted"></span>
+              </div>
+              <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 1rem 0" />
+              <div class="form-grid" style="max-width:none; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))">
+                <div><label for="hd-cc-id">Class id (slug)</label><input id="hd-cc-id" placeholder="e.g. primary3" /></div>
+                <div><label for="hd-cc-title">Class title</label><input id="hd-cc-title" placeholder="e.g. Primary Three" /></div>
+                <div style="grid-column:1 / -1"><label for="hd-cc-subjects">Subjects (comma separated)</label><input id="hd-cc-subjects" placeholder="Mathematics, English, Reading, Science" /></div>
+              </div>
+              <div style="display:flex; gap:0.5rem; align-items:center; margin-top:0.6rem; flex-wrap:wrap">
+                <button type="button" class="btn btn-primary" id="hd-cc-create">Create class</button>
+                <span id="hd-cc-status" class="dir-muted"></span>
+              </div>
+              <h4 style="margin: 1rem 0 0.35rem; font-size: 1rem">All classes</h4>
+              <p class="dir-muted" style="margin-top:0; font-size:0.88rem">Built-in classes are fixed. Custom classes can be deleted when no learners remain in that class.</p>
+              <div class="table-wrap" style="margin-top:0.5rem">
+                <table class="data">
+                  <thead>
+                    <tr>
+                      <th>Class</th>
+                      <th>Id</th>
+                      <th>Type</th>
+                      <th>Subjects</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="hd-cc-class-list"></tbody>
+                </table>
+              </div>
+            </section>
+            <div class="dash-bottom-grid" style="margin-top: 1rem">
+              <div class="dash-widget">
+                <h4>Reports &amp; exports</h4>
+                <p class="dir-muted" style="font-size: 0.85rem">
+                  Open class workspaces to manage report templates, workflow locks, and downloads for each class group.
+                </p>
+                <p style="display:flex; gap:0.55rem; flex-wrap:wrap; margin-top:0.55rem">
+                  <a class="btn btn-primary" href="/classes.html" style="text-decoration: none; display: inline-block">Open class dashboards</a>
+                  <a class="btn" href="/director-dashboard.html" style="text-decoration: none; display: inline-block">Open director workspace</a>
+                </p>
+              </div>
+              <div class="dash-widget">
+                <h4>Skills &amp; learning tools</h4>
+                <p class="dir-muted" style="font-size: 0.85rem">
+                  Monitor vocational and skills progress, lesson notes, and teacher activity from the skills workspace.
+                </p>
+                <p style="display:flex; gap:0.55rem; flex-wrap:wrap; margin-top:0.55rem">
+                  <a class="btn btn-primary" href="/skill-dashboard.html" style="text-decoration: none; display: inline-block">Open skill dashboard</a>
+                  <button type="button" class="btn" data-tab="staff">Manage staff accounts</button>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div id="panel-reports" class="tab-panel panel dash-panel-pad">
+            <p class="dir-muted">CSV includes school roll-up and every class group for the term and period chosen here.</p>
+            <button type="button" class="btn btn-primary" id="hd-export-csv">Download subject progress CSV</button>
+            <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 1rem 0" />
+
+            <div
+              class="dir-filter-row form-grid"
+              style="max-width: 900px; margin-bottom: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr))"
+            >
+              <div>
+                <label for="hd-r-term">Term</label>
+                <select id="hd-r-term">
+                  <option value="1">Term 1</option>
+                  <option value="2">Term 2</option>
+                  <option value="3">Term 3</option>
+                </select>
+              </div>
+              <div>
+                <label for="hd-r-period">Period</label>
+                <select id="hd-r-period">
+                  <option value="begin">Beginning of term</option>
+                  <option value="mid">Mid term</option>
+                  <option value="end">End term</option>
+                </select>
+              </div>
+              <div>
+                <label for="hd-r-year">Year</label>
+                <select id="hd-r-year"></select>
+                <input
+                  id="hd-r-year-custom"
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="Type custom year"
+                  style="display:none; margin-top:0.35rem"
+                />
+              </div>
+              <div style="align-self: end">
+                <button type="button" class="btn btn-primary" id="hd-report-apply">Apply</button>
+              </div>
+            </div>
+            <p id="hd-report-status" class="dir-muted" style="margin-top:-0.35rem; margin-bottom:0.85rem"></p>
+
+            <h3 class="dash-card-title" style="margin-bottom: 0.6rem">Head report explorer</h3>
+            <p class="dir-muted">View any class learner report data here without opening class dashboards.</p>
+            <div class="form-grid" style="max-width:none; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 0.75rem">
+              <div>
+                <label for="hd-rp-class">Class level</label>
+                <select id="hd-rp-class"></select>
+              </div>
+              <div>
+                <label for="hd-rp-stream">Stream</label>
+                <select id="hd-rp-stream"></select>
+              </div>
+              <div>
+                <label for="hd-rp-term">Term</label>
+                <select id="hd-rp-term">
+                  <option value="1">Term 1</option>
+                  <option value="2">Term 2</option>
+                  <option value="3">Term 3</option>
+                </select>
+              </div>
+              <div>
+                <label for="hd-rp-period">Period</label>
+                <select id="hd-rp-period">
+                  <option value="begin">Beginning of term</option>
+                  <option value="mid">Mid term</option>
+                  <option value="end">End term</option>
+                </select>
+              </div>
+              <div>
+                <label for="hd-rp-learner">Learner</label>
+                <select id="hd-rp-learner"></select>
+              </div>
+            </div>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.8rem">
+              <button type="button" class="btn btn-primary" id="hd-rp-load">Load report</button>
+              <span id="hd-rp-status" class="dir-muted" style="align-self:center; margin:0"></span>
+            </div>
+            <div class="dash-bottom-grid" style="margin-top:0; margin-bottom: 1rem">
+              <section class="dash-card">
+                <h4 style="margin:0 0 0.5rem">Validation status</h4>
+                <div id="hd-rp-validation"></div>
+              </section>
+              <section class="dash-card">
+                <h4 style="margin:0 0 0.5rem">Learner report preview</h4>
+                <div id="hd-rp-preview"></div>
+              </section>
+            </div>
+
+            <div class="dir-chart-split">
+              <section class="dash-card">
+                <h3 class="dash-card-title">Learner distribution</h3>
+                <canvas id="hd-chart-distribution" height="240"></canvas>
+              </section>
+              <section class="dash-card">
+                <h3 class="dash-card-title">Reporting snapshot</h3>
+                <p class="dir-muted">Share of learners with at least one subject comment or scored mark (this term &amp; period).</p>
+                <div class="dir-progress-row">
+                  <label><span>Any subject comment</span><span id="hd-r-lbl-comments">—</span></label>
+                  <div class="dir-progress-bar"><span id="hd-r-bar-comments" style="width: 0%"></span></div>
+                </div>
+                <div class="dir-progress-row">
+                  <label><span>Any scored mark</span><span id="hd-r-lbl-marks">—</span></label>
+                  <div class="dir-progress-bar"><span id="hd-r-bar-marks" style="width: 0%"></span></div>
+                </div>
+                <div class="dir-progress-row">
+                  <label><span>Average of the two</span><span id="hd-r-lbl-combined">—</span></label>
+                  <div class="dir-progress-bar"><span id="hd-r-bar-combined" style="width: 0%"></span></div>
+                </div>
+              </section>
+            </div>
+
+            <section class="dash-card" style="margin-top: 0.45rem; margin-bottom: 1rem">
+              <h3 class="dash-card-title">Subject progress — school</h3>
+              <div class="table-wrap dash-table-scroll">
+                <table class="data">
+                  <thead>
+                    <tr>
+                      <th>Subject</th>
+                      <th>Entered</th>
+                      <th>Eligible</th>
+                      <th>%</th>
+                    </tr>
+                  </thead>
+                  <tbody id="hd-r-table-school-subjects"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="dash-card">
+              <h3 class="dash-card-title">Subject progress — by class group</h3>
+              <p class="dir-muted">Expand a class to see each subject.</p>
+              <div id="hd-r-class-subject-blocks"></div>
+            </section>
+
+            <div class="dash-bottom-grid" style="margin-top: 1rem; margin-bottom: 1rem">
+              <div class="dash-widget">
+                <h4>Report workflow health</h4>
+                <p class="dir-muted" style="font-size: 0.84rem">Completion, approval state, and lock status per class group.</p>
+                <div class="table-wrap dash-table-scroll">
+                  <table class="data">
+                    <thead>
+                      <tr>
+                        <th>Class group</th>
+                        <th>Complete</th>
+                        <th>Approval</th>
+                        <th>Locked</th>
+                      </tr>
+                    </thead>
+                    <tbody id="hd-r-workflow-tbody"></tbody>
+                  </table>
+                </div>
+                <ul id="hd-r-health-alerts" class="dir-events" style="margin-top: 0.6rem"></ul>
+              </div>
+              <div class="dash-widget">
+                <h4>Staff coverage</h4>
+                <p class="dir-muted" style="font-size: 0.84rem">Active staff by role and account status snapshot.</p>
+                <div id="hd-r-staff-coverage"></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="panel-head-comments" class="tab-panel panel dash-panel-pad">
+            <p class="js-optional-tip" style="color: var(--muted); font-size: 0.95rem; margin-top: 0">
+              Pick a <strong>class</strong>, then move from learner to learner. One comment per child per reporting period. It
+              appears on that class’s dashboard <strong>Export</strong> table in the head column (label follows section: nursery
+              vs primary).
+            </p>
+            <div class="comments-toolbar">
+              <div>
+                <label for="hc-class-pick">Class</label>
+                <select id="hc-class-pick"></select>
+              </div>
+              <div>
+                <label for="hc-term">Term</label>
+                <select id="hc-term">
+                  <option value="1">Term 1</option>
+                  <option value="2">Term 2</option>
+                  <option value="3">Term 3</option>
+                </select>
+              </div>
+              <div>
+                <label for="hc-period">Reporting period</label>
+                <select id="hc-period">
+                  <option value="begin">Beginning of term</option>
+                  <option value="mid">Mid term</option>
+                  <option value="end">End of term</option>
+                </select>
+              </div>
+            </div>
+            <p id="hc-period-label" style="color: var(--accent); font-size: 0.9rem; margin: 0.5rem 0 1rem"></p>
+            <div class="comments-layout comments-layout--head-review">
+              <aside class="comments-side comments-side--photo-only" aria-label="Learner photo">
+                <div id="hc-profile-photo" class="comments-profile-photo"></div>
+              </aside>
+              <div class="comments-main comments-main--head-review">
+                <div id="hc-learner-info-bar" class="learner-focus-bar" aria-live="polite">
+                  <p class="learner-focus-title">Learner</p>
+                  <div class="learner-focus-grid">
+                    <div class="learner-focus-field">
+                      <span class="learner-focus-label">Full name</span>
+                      <strong id="hc-d-name" class="learner-focus-value">—</strong>
+                    </div>
+                    <div class="learner-focus-field">
+                      <span class="learner-focus-label">Class</span>
+                      <strong id="hc-d-class" class="learner-focus-value">—</strong>
+                    </div>
+                    <div class="learner-focus-field">
+                      <span class="learner-focus-label">Reg No.</span>
+                      <strong id="hc-d-reg" class="learner-focus-value">—</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="comments-carousel-wrap">
+                  <button type="button" class="btn comments-carousel-btn" id="hc-prev" aria-label="Previous">‹</button>
+                  <div id="hc-carousel" class="comments-carousel"></div>
+                  <button type="button" class="btn comments-carousel-btn" id="hc-next" aria-label="Next">›</button>
+                </div>
+                <div class="learner-context-card" aria-live="polite">
+                  <div class="learner-context-head">
+                    <p class="learner-context-title">Class teacher comment</p>
+                    <span id="hc-class-teacher-meta" class="learner-context-meta"></span>
+                  </div>
+                  <textarea
+                    id="hc-class-teacher-comment"
+                    class="learner-context-input"
+                    rows="4"
+                    maxlength="300"
+                    spellcheck="true"
+                    lang="en"
+                    placeholder="Choose a class and learner to see the saved class teacher comment for this reporting slot."
+                    disabled
+                  ></textarea>
+                  <p class="learner-context-tip">
+                    Edit this class teacher comment here if you need to refine it before writing the head teacher comment. Clear
+                    the text and save to remove it.
+                  </p>
+                  <div class="comments-meta-row">
+                    <span id="hc-class-teacher-char" class="learner-context-count">0 / 300</span>
+                  </div>
+                  <div class="learner-context-actions">
+                    <button type="button" class="btn btn-primary" id="hc-class-teacher-save" disabled>Save class teacher comment</button>
+                    <button type="button" class="btn" id="hc-class-teacher-reset" disabled>Restore saved</button>
+                  </div>
+                </div>
+                <label for="hc-body">Head comment</label>
+                <textarea
+                  id="hc-body"
+                  maxlength="400"
+                  rows="8"
+                  spellcheck="true"
+                  lang="en"
+                  placeholder="Overall progress, conduct, attendance highlights…"
+                ></textarea>
+                <p class="js-optional-tip" style="color: var(--muted); font-size: 0.82rem; margin: 0.35rem 0 0">
+                  On save, spelling and grammar are checked (internet), and close misspellings of <strong>learners’ names in this class</strong> are fixed to match the register.
+                </p>
+                <div class="comments-meta-row">
+                  <span id="hc-char-count" style="color: var(--muted); font-size: 0.85rem">0 / 400</span>
+                </div>
+                <div class="comments-actions">
+                  <button type="button" class="btn btn-primary" id="hc-save-next">Save &amp; next learner</button>
+                  <button type="button" class="btn btn-primary" id="hc-save-prev">Save &amp; previous learner</button>
+                  <button type="button" class="btn" id="hc-save-only">Save</button>
+                  <button type="button" class="btn" id="hc-clear">Clear comment</button>
+                </div>
+              </div>
+              <aside class="comments-summary panel" style="padding: 1rem; margin: 0">
+                <h4 style="margin: 0 0 0.75rem; font-size: 1rem">Class snapshot</h4>
+                <p id="hc-summary-line" style="margin: 0; font-size: 0.9rem; color: var(--muted)"></p>
+                <div class="comments-progress-track">
+                  <div id="hc-summary-fill" class="comments-progress-fill"></div>
+                </div>
+                <p id="hc-summary-pct" style="margin: 0.35rem 0 0; font-size: 1.1rem; font-weight: 600"></p>
+              </aside>
+            </div>
+          </div>
+
+          <div id="panel-comment-review" class="tab-panel head-review-ocean">
+            <div class="head-review-ocean-backdrop" aria-hidden="true"></div>
+            <header class="head-review-ocean-hero">
+              <h2 class="head-review-ocean-heading">Review class work &amp; marks</h2>
+              <p class="head-review-ocean-lead">
+                A calm place to anchor what teachers have entered — same spirit as the home page. Choose a class and subject,
+                then move learner to learner.
+              </p>
+            </header>
+            <div class="head-review-ocean-card panel dash-panel-pad">
+            <p class="js-optional-tip head-review-ocean-tip">
+              Choose a <strong>class group</strong>, then a <strong>subject</strong>. Changing the subject or term reloads from the server so you always see the latest teacher comments. Use <strong>Reload list</strong> if a class teacher just saved and you still see an empty box.
+              For <strong>Primary One / Two</strong>, core subjects use <strong>marks out of 100</strong> (same as the class dashboard Comments tab); vocational subjects use <strong>text comments</strong>. For nursery classes you review <strong>comments</strong> only. Save keeps your edits; comment rows keep the original author type on record.
+            </p>
+            <div class="comments-toolbar">
+              <div>
+                <label for="cr-term">Term</label>
+                <select id="cr-term">
+                  <option value="1">Term 1</option>
+                  <option value="2">Term 2</option>
+                  <option value="3">Term 3</option>
+                </select>
+              </div>
+              <div>
+                <label for="cr-period">Reporting period</label>
+                <select id="cr-period">
+                  <option value="begin">Beginning of term</option>
+                  <option value="mid">Mid term</option>
+                  <option value="end">End of term</option>
+                </select>
+              </div>
+              <div>
+                <label for="cr-class-pick">Class group</label>
+                <select id="cr-class-pick">
+                  <option value="">All class groups</option>
+                </select>
+              </div>
+              <div>
+                <label for="cr-subject-pick">Subject</label>
+                <select id="cr-subject-pick">
+                  <option value="">All subjects</option>
+                </select>
+              </div>
+              <div style="align-self: end">
+                <button type="button" class="btn btn-primary" id="cr-reload">Reload list</button>
+              </div>
+            </div>
+            <p id="cr-period-label" style="color: var(--accent); font-size: 0.9rem; margin: 0.5rem 0 1rem"></p>
+            <div class="comments-layout comments-layout--head-review">
+              <aside class="comments-side comments-side--photo-only" aria-label="Learner photo">
+                <div id="cr-profile-photo" class="comments-profile-photo"></div>
+              </aside>
+              <div class="comments-main comments-main--head-review">
+                <div id="cr-learner-info-bar" class="learner-focus-bar" aria-live="polite">
+                  <p id="cr-learner-focus-title" class="learner-focus-title">Learner &amp; comment context</p>
+                  <div class="learner-focus-grid">
+                    <div class="learner-focus-field">
+                      <span class="learner-focus-label">Full name</span>
+                      <strong id="cr-d-name" class="learner-focus-value">—</strong>
+                    </div>
+                    <div class="learner-focus-field">
+                      <span class="learner-focus-label">Class</span>
+                      <strong id="cr-d-class" class="learner-focus-value">—</strong>
+                    </div>
+                    <div class="learner-focus-field">
+                      <span class="learner-focus-label">Subject</span>
+                      <strong id="cr-d-subject" class="learner-focus-value">—</strong>
+                    </div>
+                    <div class="learner-focus-field">
+                      <span class="learner-focus-label">Reg No.</span>
+                      <strong id="cr-d-reg" class="learner-focus-value">—</strong>
+                    </div>
+                    <div class="learner-focus-field learner-focus-field--wide">
+                      <span id="cr-author-label" class="learner-focus-label">Author (original)</span>
+                      <strong id="cr-d-author" class="learner-focus-value">—</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="comments-carousel-wrap">
+                  <button type="button" class="btn comments-carousel-btn" id="cr-prev" aria-label="Previous">‹</button>
+                  <div id="cr-carousel" class="comments-carousel"></div>
+                  <button type="button" class="btn comments-carousel-btn" id="cr-next" aria-label="Next">›</button>
+                </div>
+                <div id="cr-marks-panel" class="cc-marks-panel" style="display: none">
+                  <details class="cc-ug-help" id="cr-ug-help">
+                    <summary>How Ugandan primary grading is usually reported</summary>
+                    <div class="cc-ug-help-body">
+                      <p>
+                        At <strong>PLE</strong>, UNEB gives each examined subject a grade from <strong>1 (best) to 9</strong>. Those grades are added into an
+                        <strong>aggregate</strong> (best total 4, highest 36). <strong>Division I–IV</strong> (and <strong>U</strong>) describe overall performance from that
+                        <strong>total aggregate</strong>, not from one subject in isolation.
+                      </p>
+                      <p>
+                        This screen matches the <strong>class dashboard Comments tab</strong> for Primary: enter <strong>marks out of 100</strong>; the system fills
+                        <strong>grade</strong> and <strong>remark</strong> from the grading scale in <strong>Settings</strong>. <strong>Overall division</strong> uses all subject grades for this learner.
+                      </p>
+                    </div>
+                  </details>
+                  <p class="cc-marks-lead">
+                    Same as the class dashboard: enter <strong>marks scored (out of 100)</strong>. Grade and remark follow your <strong>grading scale</strong>; initials follow your
+                    <strong>display name</strong> in Settings. Clear the field and save to remove a mark.
+                  </p>
+                  <div class="cc-marks-input-row">
+                    <div class="cc-marks-scored-wrap">
+                      <label for="cr-m-scored">Marks scored (out of 100)</label>
+                      <input
+                        id="cr-m-scored"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        placeholder="e.g. 72"
+                        class="cc-marks-scored-input"
+                      />
+                    </div>
+                  </div>
+                  <div id="cr-m-system-out" class="cc-m-system-out" role="status" aria-live="polite"></div>
+                </div>
+                <div id="cr-comment-block">
+                  <label for="cr-body">Comment</label>
+                  <textarea
+                    id="cr-body"
+                    maxlength="300"
+                    rows="8"
+                    spellcheck="true"
+                    lang="en"
+                    placeholder="Subject comment text…"
+                  ></textarea>
+                  <p class="js-optional-tip" style="color: var(--muted); font-size: 0.82rem; margin: 0.35rem 0 0">
+                    On save, spelling and grammar are checked (internet), and close misspellings of <strong>learners’ names in this class group</strong> are fixed to match the register.
+                  </p>
+                  <div class="comments-meta-row">
+                    <span id="cr-char-count" style="color: var(--muted); font-size: 0.85rem">0 / 300</span>
+                  </div>
+                </div>
+                <div class="comments-actions">
+                  <button type="button" class="btn btn-primary" id="cr-save-next">Save &amp; next</button>
+                  <button type="button" class="btn btn-primary" id="cr-save-prev">Save &amp; previous</button>
+                  <button type="button" class="btn" id="cr-save-only">Save</button>
+                </div>
+              </div>
+              <aside class="comments-summary panel" style="padding: 1rem; margin: 0">
+                <h4 style="margin: 0 0 0.75rem; font-size: 1rem">Review snapshot</h4>
+                <p id="cr-summary-line" style="margin: 0; font-size: 0.9rem; color: var(--muted)"></p>
+                <div class="comments-progress-track">
+                  <div id="cr-summary-fill" class="comments-progress-fill"></div>
+                </div>
+                <p id="cr-summary-pct" style="margin: 0.35rem 0 0; font-size: 1.1rem; font-weight: 600"></p>
+              </aside>
+            </div>
+            </div>
+            <footer class="head-review-ocean-foot">THE OCEAN OF KNOWLEDGE SCHOOL · Uganda · Up with skills</footer>
+          </div>
+
+          <div id="panel-staff" class="tab-panel panel dash-panel-pad">
+            <p class="dir-muted">
+              The director creates most staff accounts. Head teachers can also add accounts here; each role signs in on its own page
+              (class, skill, or head teacher).
+            </p>
+            <div class="dash-register-split">
+              <section class="dash-card dash-card-form">
+                <h3 class="dash-card-title">New staff account</h3>
+                <form id="hd-staff-form" class="form-grid" style="max-width: none; margin-top: 0.5rem">
+                  <div>
+                    <label for="hsf-name">Full name</label>
+                    <input id="hsf-name" required autocomplete="name" />
+                  </div>
+                  <div>
+                    <label for="hsf-email">Email (sign-in)</label>
+                    <input id="hsf-email" type="email" required autocomplete="off" />
+                  </div>
+                  <div>
+                    <label for="hsf-password">Initial password</label>
+                    <input id="hsf-password" type="password" required minlength="6" autocomplete="new-password" />
+                  </div>
+                  <div>
+                    <label for="hsf-role">Role</label>
+                    <select id="hsf-role" required>
+                      <option value="head_teacher">Head teacher</option>
+                      <option value="class_teacher">Class teacher</option>
+                      <option value="skill_teacher">Skill teacher</option>
+                      <option value="director">Director (co-director)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="hsf-class-level">Class level (class teachers)</label>
+                    <input id="hsf-class-level" placeholder="e.g. primary1" />
+                  </div>
+                  <div>
+                    <label for="hsf-stream">Stream (optional)</label>
+                    <input id="hsf-stream" placeholder="e.g. waves" />
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="width: 100%">Create account</button>
+                </form>
+              </section>
+              <section class="dash-card dash-card-table">
+                <h3 class="dash-card-title">Staff directory</h3>
+                <div class="table-wrap dash-table-scroll" style="margin-top: 0.75rem">
+                  <table class="data">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Scope</th>
+                        <th>Status</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="hd-staff-tbody"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div id="panel-messages" class="tab-panel panel dash-panel-pad">
+            <h3 style="margin-top: 0; font-size: 1.05rem">Private messages</h3>
+            <p style="color: var(--muted); font-size: 0.92rem; margin-top: 0; max-width: 760px">
+              Private chats and groups between staff — only people in each conversation can read it.
+            </p>
+            <div id="dm-app" class="dm-app">
+              <aside class="dm-sidebar" id="dm-sidebar" aria-label="Conversations">
+                <div class="dm-sidebar-head">
+                  <p id="dm-me-label" class="dm-me-label">Head teacher</p>
+                  <div class="dm-sidebar-actions">
+                    <button type="button" class="btn btn-sm" id="dm-new-chat-btn">New chat</button>
+                    <button type="button" class="btn btn-sm" id="leader-messages-refresh" title="Refresh">Refresh</button>
+                  </div>
+                </div>
+                <div id="dm-inbox-list" class="dm-inbox-list"></div>
+              </aside>
+              <section class="dm-chat" id="dm-chat" aria-label="Chat">
+                <header class="dm-chat-header">
+                  <button type="button" class="dm-back-btn" id="dm-back-btn" aria-label="Back to chats">←</button>
+                  <div id="dm-chat-peer-avatar" class="dm-chat-peer-avatar" aria-hidden="true"></div>
+                  <div class="dm-chat-peer">
+                    <span id="dm-chat-peer-name" class="dm-chat-peer-name">Select a chat</span>
+                    <span id="dm-chat-peer-role" class="dm-chat-peer-role"></span>
+                  </div>
+                  <button type="button" class="btn btn-sm dm-clear-chat-btn" id="dm-clear-chat-btn" hidden>
+                    Clear chat
+                  </button>
+                </header>
+                <div class="dm-thread-card" aria-label="Message history">
+                  <div id="leader-messages-thread" class="dm-thread class-messages-thread" role="log"></div>
+                </div>
+                <p id="leader-messages-feedback" class="class-messages-feedback" role="status" aria-live="polite"></p>
+                <form id="form-leader-message" class="dm-compose class-messages-compose">
+                  <label class="sr-only" for="leader-messages-body">Your message</label>
+                  <textarea id="leader-messages-body" rows="2" maxlength="8000" placeholder="Type a message…"></textarea>
+                  <p id="dm-attach-name" class="dm-attach-name" hidden></p>
+                  <div id="dm-voice-recording" class="dm-voice-recording" hidden>
+                    <div id="dm-voice-recording-active" class="dm-voice-recording-active" hidden>
+                      <button type="button" class="dm-voice-cancel" id="dm-voice-cancel" aria-label="Cancel recording">✕</button>
+                      <span class="dm-voice-pulse" aria-hidden="true"></span>
+                      <span class="dm-voice-timer" id="dm-voice-timer">0:00</span>
+                      <div class="dm-voice-rec-transport">
+                        <button type="button" class="dm-voice-pause" id="dm-voice-rec-pause" aria-label="Pause recording">
+                          <span class="dm-voice-pause-icon" aria-hidden="true">❚❚</span>
+                        </button>
+                        <button type="button" class="dm-voice-play" id="dm-voice-rec-resume" aria-label="Resume recording" hidden>
+                          <span class="dm-voice-play-icon" aria-hidden="true">▶</span>
+                        </button>
+                      </div>
+                      <button type="button" class="dm-voice-rec-done" id="dm-voice-rec-done">Done</button>
+                      <span class="dm-voice-rec-hint" id="dm-voice-rec-hint">❚❚ Pause · Done when finished</span>
+                    </div>
+                    <div id="dm-voice-preview" class="dm-voice-preview" hidden>
+                      <div class="dm-voice-preview-transport">
+                        <button type="button" class="dm-voice-play" id="dm-voice-preview-play" aria-label="Play recording">
+                          <span class="dm-voice-play-icon" aria-hidden="true">▶</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="dm-voice-pause"
+                          id="dm-voice-preview-pause"
+                          aria-label="Pause playback"
+                          hidden
+                        >
+                          <span class="dm-voice-pause-icon" aria-hidden="true">❚❚</span>
+                        </button>
+                      </div>
+                      <div class="dm-voice-bar dm-voice-preview-bar" id="dm-voice-preview-bar">
+                        <div class="dm-voice-bar-fill" id="dm-voice-preview-bar-fill"></div>
+                      </div>
+                      <span class="dm-voice-timer" id="dm-voice-preview-timer">0:00</span>
+                      <span class="dm-voice-preview-hint" id="dm-voice-preview-hint">Play to listen · pause anytime · send when ready</span>
+                      <button type="button" class="dm-voice-discard" id="dm-voice-discard">Discard</button>
+                      <button type="button" class="btn btn-sm btn-primary dm-voice-send" id="dm-voice-send">Send voice</button>
+                    </div>
+                  </div>
+                  <div class="dm-compose-row">
+                    <label class="dm-attach-btn" title="Photo or file">
+                      <input
+                        id="leader-messages-attachment"
+                        name="attachment"
+                        type="file"
+                        hidden
+                        accept="image/*,audio/*,.webm,.ogg,.m4a,.mp3,.wav,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
+                      />
+                      <span aria-hidden="true">📎</span>
+                    </label>
+                    <button
+                      type="button"
+                      class="dm-voice-btn"
+                      id="dm-voice-btn"
+                      title="Tap to record voice note"
+                      aria-label="Record voice note"
+                    >
+                      <span class="dm-voice-icon" aria-hidden="true">🎤</span>
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="leader-messages-send">Send</button>
+                  </div>
+                </form>
+              </section>
+            </div>
+            <div id="dm-new-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="dm-new-title" hidden>
+              <div class="modal dm-new-modal-card">
+                <h3 id="dm-new-title">New conversation</h3>
+                <div class="dm-new-mode-tabs" role="tablist" aria-label="Chat type">
+                  <button type="button" class="dm-new-mode-tab is-active" id="dm-new-mode-dm" role="tab">
+                    Private chat
+                  </button>
+                  <button type="button" class="dm-new-mode-tab" id="dm-new-mode-group" role="tab">New group</button>
+                </div>
+                <p id="dm-new-mode-hint" class="dir-muted dm-new-mode-hint">
+                  Tap someone’s account to open a private chat. Only that login sees your messages.
+                </p>
+                <div id="dm-new-group-fields" class="dm-new-group-fields" hidden>
+                  <label for="dm-group-name">Group name</label>
+                  <input
+                    id="dm-group-name"
+                    type="text"
+                    maxlength="80"
+                    placeholder="e.g. Baby class team"
+                    autocomplete="off"
+                  />
+                </div>
+                <label class="sr-only" for="dm-account-search">Search accounts</label>
+                <input
+                  id="dm-account-search"
+                  type="search"
+                  class="dm-account-search"
+                  placeholder="Search name, email, role, or class…"
+                  autocomplete="off"
+                />
+                <div id="dm-account-list" class="dm-account-list" role="listbox" aria-label="Staff accounts"></div>
+                <div class="dm-new-modal-actions">
+                  <button type="button" class="btn btn-primary" id="dm-create-group-btn" hidden>Create group</button>
+                  <button type="button" class="btn" id="dm-new-chat-cancel">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="panel-settings" class="tab-panel panel dash-panel-pad">
+            <h3 style="margin-top: 0; font-size: 1.05rem">Your device profile</h3>
+            <p style="color: var(--muted); font-size: 0.92rem; margin-top: 0">Name and photo on your staff account. Theme stays on this device.</p>
+            <div class="form-grid" style="max-width: 520px">
+              <div class="profile-preview-row">
+                <img id="settings-avatar-preview" class="settings-avatar-preview" alt="Preview" style="display: none" />
+                <div>
+                  <label for="settings-avatar-file">Profile photo</label>
+                  <input id="settings-avatar-file" type="file" accept="image/*" />
+                  <p class="settings-hint">Saved on your staff account.</p>
+                </div>
+              </div>
+              <div>
+                <label for="settings-display-name">Display name</label>
+                <input id="settings-display-name" type="text" maxlength="80" placeholder="e.g. Head Teacher Mary A." />
+              </div>
+              <div>
+                <label for="settings-theme">Theme</label>
+                <select id="settings-theme">
+                  <option value="ocean">Ocean (default)</option>
+                  <option value="sand">Warm sand</option>
+                  <option value="forest">Forest calm</option>
+                  <option value="ink">Ink dark</option>
+                  <option value="bloom">Bloom pink</option>
+                  <option value="coral">Coral sunset</option>
+                  <option value="lavender">Lavender dream</option>
+                  <option value="aurora">Aurora teal</option>
+                  <option value="sunset">Sunset violet &amp; gold</option>
+                </select>
+                <p class="settings-hint">Saved in this browser only.</p>
+              </div>
+              <div>
+                <label>
+                  <input type="checkbox" id="settings-show-tips" checked />
+                  Show helper tips on this workspace
+                </label>
+              </div>
+              <button type="button" class="btn btn-primary" id="settings-save">Save settings</button>
+              <hr style="border: none; border-top: 1px solid rgba(255, 255, 255, 0.12); margin: 1.75rem 0 1rem" />
+              <div class="settings-password-block">
+                <h4>Account password</h4>
+                <div>
+                  <label for="settings-current-password">Current password</label>
+                  <input id="settings-current-password" type="password" autocomplete="current-password" />
+                </div>
+                <div style="margin-top: 0.75rem">
+                  <label for="settings-new-password">New password</label>
+                  <input id="settings-new-password" type="password" autocomplete="new-password" minlength="6" />
+                </div>
+                <button type="button" class="btn" id="settings-change-password" style="margin-top: 1rem">Change password</button>
+                <p id="settings-password-msg" class="settings-hint" style="display: none"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/js/staff-auth.js?v=20260531d"></script>
+    <script src="/js/brand.js?v=20260529a"></script>
+    <script src="/js/classes-config.js?v=20260529a"></script>
+    <script src="/js/subjects.js?v=20260529a"></script>
+    <script src="/js/message-notify.js?v=20260529a"></script>
+    <script src="/js/welcome-banner.js?v=20260531f"></script>
+    <script src="/js/head-dashboard.js?v=20260531d"></script>
+    <script src="/js/head-learner-comments.js?v=20260529a"></script>
+    <script src="/js/head-comment-review.js?v=20260529a"></script>
+    <script src="/js/dm-voice.js?v=20260601g"></script>
+    <script src="/js/leadership-messages.js?v=20260601g"></script>
+    <script src="/js/password-field.js?v=20260531a"></script>
+    <script src="/js/settings.js?v=20260531c"></script>
+  </body>
+</html>

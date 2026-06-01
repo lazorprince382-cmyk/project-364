@@ -1,0 +1,16 @@
+# Optional: OnlyOffice Document Server for Word-accurate preview/edit in the subject workspace.
+# Start: docker compose up -d
+# Then set ONLYOFFICE_DOCUMENT_SERVER_URL, PUBLIC_APP_URL, ONLYOFFICE_CALLBACK_SECRET in .env
+# See .env.example
+
+services:
+  onlyoffice-documentserver:
+    image: onlyoffice/documentserver:latest
+    container_name: ocean-onlyoffice
+    ports:
+      - "8080:80"
+    environment:
+      # Easiest first-time setup; enable JWT in production and configure ONLYOFFICE JWT_SECRET.
+      - JWT_ENABLED=false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

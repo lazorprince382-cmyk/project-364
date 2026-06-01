@@ -1,0 +1,386 @@
+/**
+ * Clear Ocean — dashboard layout & chrome (Settings → Change UI).
+ * Active when html[data-dash-ui='clear-ocean'] on app-dash pages.
+ */
+html[data-dash-ui='clear-ocean'] body.app-dash {
+  --co-bg: #070b14;
+  --co-surface: #0f1628;
+  --co-surface-2: #141d32;
+  --co-border: rgba(148, 163, 184, 0.14);
+  --co-blue: #3b82f6;
+  --co-blue-soft: rgba(59, 130, 246, 0.18);
+  --co-red: #ef4444;
+  --co-red-btn: #dc2626;
+  --co-text: #f1f5f9;
+  --co-muted: #94a3b8;
+  background: var(--co-bg);
+  color: var(--co-text);
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-main {
+  background: linear-gradient(180deg, #0a1020 0%, #070b14 40%, #060a12 100%);
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-brand {
+  order: 1;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-sidebar {
+  display: flex;
+  flex-direction: column;
+  background: #050810;
+  border-right: 1px solid rgba(59, 130, 246, 0.12);
+  padding-bottom: 1rem;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-brand-name {
+  font-size: 0.58rem;
+  letter-spacing: 0.07em;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-nav {
+  order: 2;
+  flex: 1;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-sidebar-user {
+  order: 4;
+  margin-top: auto;
+  background: var(--co-surface-2);
+  border: 1px solid var(--co-border);
+  border-radius: 14px;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-sidebar-foot {
+  order: 3;
+  border-top: none;
+  padding-top: 0.5rem;
+  margin-top: 0;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-nav-btn.tab {
+  border-radius: 12px;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.88rem;
+  border: 1px solid transparent;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-nav-btn.tab:hover {
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--co-text);
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-nav-btn.tab.active {
+  background: var(--co-blue-soft);
+  border-color: rgba(59, 130, 246, 0.45);
+  color: #93c5fd;
+  box-shadow: inset 3px 0 0 var(--co-blue);
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-topbar {
+  background: rgba(8, 12, 22, 0.95);
+  border-bottom: 1px solid var(--co-border);
+  padding: 0.75rem 1.35rem;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-topbar-class {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash #dir-btn-signout-top,
+html[data-dash-ui='clear-ocean'] body.app-dash #dash-btn-signout {
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.55);
+  color: #fca5a5;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 0.45rem 0.9rem;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash #dir-btn-signout-top:hover,
+html[data-dash-ui='clear-ocean'] body.app-dash #dash-btn-signout:hover {
+  background: rgba(220, 38, 38, 0.2);
+  color: #fff;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-sidebar-foot #dir-btn-signout {
+  color: #f87171;
+  font-weight: 600;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-sidebar-foot #dir-btn-signout:hover {
+  background: rgba(220, 38, 38, 0.12);
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-welcome-banner {
+  position: relative;
+  overflow: hidden;
+  padding: 1.35rem 1.5rem 1.5rem;
+  margin-bottom: 1.25rem;
+  border: none;
+  border-radius: 16px;
+  background:
+    linear-gradient(125deg, #1d4ed8 0%, #1e3a8a 38%, #0f172a 72%, #0a1020 100%);
+  box-shadow: 0 12px 40px rgba(29, 78, 216, 0.25);
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-welcome-banner::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 48' preserveAspectRatio='none'%3E%3Cpath fill='%23070b14' fill-opacity='0.35' d='M0 24 Q300 0 600 24 T1200 24 L1200 48 L0 48 Z'/%3E%3Cpath fill='%23070b14' d='M0 32 Q400 8 800 32 T1200 32 L1200 48 L0 48 Z'/%3E%3C/svg%3E")
+    bottom center / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-welcome-kicker {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(1.25rem, 2.8vw, 1.65rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-welcome-quote {
+  position: relative;
+  z-index: 1;
+  font-size: 0.95rem;
+  color: rgba(226, 232, 240, 0.92);
+  max-width: 42ch;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-welcome-cta {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.85rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  background: #fff;
+  color: #1e3a8a;
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-welcome-cta:hover {
+  background: #f8fafc;
+  color: #1d4ed8;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-page-head #dash-title,
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-page-head #head-dash-title,
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-page-head #skill-dash-title {
+  display: none;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-page-head #dash-sub {
+  display: none;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-stats {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.35rem;
+}
+
+@media (max-width: 1100px) {
+  html[data-dash-ui='clear-ocean'] body.app-dash .dash-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-stat-card {
+  position: relative;
+  padding: 1.1rem 1.15rem 1rem 3.25rem;
+  background: var(--co-surface);
+  border: 1px solid var(--co-border);
+  border-radius: 14px;
+  border-bottom-width: 3px;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-stat-card::before {
+  position: absolute;
+  left: 1rem;
+  top: 1.1rem;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-stat-card:nth-child(1) {
+  border-bottom-color: var(--co-blue);
+}
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-stat-card:nth-child(1)::before {
+  content: '🎓';
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-stat-card:nth-child(2) {
+  border-bottom-color: var(--co-red);
+}
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-stat-card:nth-child(2)::before {
+  content: '👥';
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-stat-card:nth-child(3) {
+  border-bottom-color: var(--co-blue);
+}
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-stat-card:nth-child(3)::before {
+  content: '📚';
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-stat-card:nth-child(4) {
+  border-bottom-color: var(--co-red);
+}
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-stat-card:nth-child(4)::before {
+  content: '⭐';
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-stat-card:nth-child(n + 5):nth-child(odd) {
+  border-bottom-color: var(--co-blue);
+}
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-stat-card:nth-child(n + 5):nth-child(even) {
+  border-bottom-color: var(--co-red);
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-stat-value {
+  color: #fff;
+  font-size: 1.75rem;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-stat-label {
+  color: var(--co-muted);
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-tabs-wrap .tabs {
+  border-bottom: none;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.35rem;
+  background: var(--co-surface);
+  border-radius: 14px;
+  border: 1px solid var(--co-border);
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-tabs-wrap .tab {
+  border-radius: 10px;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.86rem;
+  color: var(--co-muted);
+  border: 1px solid transparent;
+  background: transparent;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-tabs-wrap .tab:hover {
+  color: var(--co-text);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-tabs-wrap .tab.active {
+  background: var(--co-blue-soft);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.4);
+  font-weight: 600;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .btn.btn-primary,
+html[data-dash-ui='clear-ocean'] body.app-dash .btn-primary {
+  background: linear-gradient(180deg, #ef4444 0%, var(--co-red-btn) 100%);
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .btn.btn-primary:hover,
+html[data-dash-ui='clear-ocean'] body.app-dash .btn-primary:hover {
+  background: linear-gradient(180deg, #f87171 0%, #b91c1c 100%);
+  filter: none;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-card,
+html[data-dash-ui='clear-ocean'] body.app-dash .panel {
+  background: var(--co-surface);
+  border: 1px solid var(--co-border);
+  border-radius: 14px;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-card-title {
+  color: var(--co-text);
+  font-size: 1rem;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dash-notify-btn {
+  border-radius: 12px;
+  background: var(--co-surface-2);
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .dir-filter-row label,
+html[data-dash-ui='clear-ocean'] body.app-dash .form-grid label {
+  color: var(--co-muted);
+  font-size: 0.82rem;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash select,
+html[data-dash-ui='clear-ocean'] body.app-dash input[type='text'],
+html[data-dash-ui='clear-ocean'] body.app-dash input[type='email'],
+html[data-dash-ui='clear-ocean'] body.app-dash input[type='password'],
+html[data-dash-ui='clear-ocean'] body.app-dash input[type='search'],
+html[data-dash-ui='clear-ocean'] body.app-dash input[type='number'],
+html[data-dash-ui='clear-ocean'] body.app-dash textarea {
+  background: var(--co-surface-2);
+  border-color: var(--co-border);
+  color: var(--co-text);
+  border-radius: 10px;
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .data th {
+  background: rgba(15, 23, 42, 0.8);
+  color: var(--co-muted);
+}
+
+html[data-dash-ui='clear-ocean'] body.app-dash .data td {
+  border-color: var(--co-border);
+}
+
+/* Settings — UI picker */
+html[data-dash-ui='clear-ocean'] .settings-ui-picker {
+  border-color: var(--co-border);
+  background: var(--co-surface);
+}
+
+html[data-dash-ui='clear-ocean'] .settings-ui-option {
+  background: var(--co-surface-2);
+  border-color: var(--co-border);
+  color: var(--co-text);
+}
+
+html[data-dash-ui='clear-ocean'] .settings-ui-option.is-selected {
+  border-color: rgba(59, 130, 246, 0.65);
+  background: var(--co-blue-soft);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
+}
+
+html[data-dash-ui='clear-ocean'] .settings-ui-option strong {
+  color: #93c5fd;
+}

@@ -1,0 +1,8 @@
+node_modules/
+.env
+uploads/
+*.log
+*.dump
+# Local DB exports only (keep db/migration_*.sql and db/schema.sql in repo)
+/ocean-school.sql
+/ocean-school-pg16.sql
