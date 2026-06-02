@@ -674,6 +674,14 @@
     if (item) item.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
   }
 
+  /** Start at first learner (e.g. after picking a new subject on the Comments tab). */
+  function resetLearnerToFirst() {
+    idx = 0;
+    renderCarousel();
+    showLearner();
+    scrollCarouselToSelected();
+  }
+
   function renderCarousel() {
     elCarousel.innerHTML = '';
     students.forEach(function (s, i) {
@@ -1083,9 +1091,11 @@
   elSubject.addEventListener('change', function () {
     updatePeriodLabel();
     updateReadonlyUi();
-    emitWeeklyContext();
-    refreshQuickCommentBanks();
+    idx = 0;
+    renderCarousel();
     refreshSubjectRows().then(function () {
+      showLearner();
+      scrollCarouselToSelected();
       updateReadonlyUi();
       emitWeeklyContext();
       refreshQuickCommentBanks();
@@ -3316,6 +3326,8 @@
     });
   }
 
+  window.__oceanCommentsResetToFirstLearner = resetLearnerToFirst;
+
   window.__oceanCommentsInit = function () {
     subjectOptions();
     fetchSchoolReportingContext()
@@ -3334,7 +3346,7 @@
         return Promise.all([refreshSubjectRows(), loadClassTeacherComments()]);
       })
       .then(function () {
-        showLearner();
+        resetLearnerToFirst();
         updateReadonlyUi();
         updateClassTeacherSummary();
         startCommentsPolling();
