@@ -152,21 +152,29 @@
     elPeriodLabel.textContent = periodLabel(p) + ' ' + t + ' — reporting for Term ' + t + ' (' + periodCycleLabel(p) + ' cycle)';
   }
 
-  function insertCommentSnippet(textarea, snippet) {
+  function insertCommentSnippet(textarea, snippet, opts) {
     if (!textarea || !snippet) return;
     const clean = String(snippet).trim();
     if (!clean) return;
-    const raw = String(textarea.value || '');
-    const start = typeof textarea.selectionStart === 'number' ? textarea.selectionStart : raw.length;
-    const end = typeof textarea.selectionEnd === 'number' ? textarea.selectionEnd : raw.length;
-    const before = raw.slice(0, start);
-    const after = raw.slice(end);
-    const prefix = before && !/\s$/.test(before) ? ' ' : '';
-    const suffix = after && !/^\s/.test(after) ? ' ' : '';
-    const next = before + prefix + clean + suffix + after;
-    textarea.value = next;
-    const caret = (before + prefix + clean).length;
-    if (typeof textarea.setSelectionRange === 'function') textarea.setSelectionRange(caret, caret);
+    const replace = opts && opts.replace;
+    if (replace) {
+      textarea.value = clean;
+      if (typeof textarea.setSelectionRange === 'function') {
+        textarea.setSelectionRange(clean.length, clean.length);
+      }
+    } else {
+      const raw = String(textarea.value || '');
+      const start = typeof textarea.selectionStart === 'number' ? textarea.selectionStart : raw.length;
+      const end = typeof textarea.selectionEnd === 'number' ? textarea.selectionEnd : raw.length;
+      const before = raw.slice(0, start);
+      const after = raw.slice(end);
+      const prefix = before && !/\s$/.test(before) ? ' ' : '';
+      const suffix = after && !/^\s/.test(after) ? ' ' : '';
+      const next = before + prefix + clean + suffix + after;
+      textarea.value = next;
+      const caret = (before + prefix + clean).length;
+      if (typeof textarea.setSelectionRange === 'function') textarea.setSelectionRange(caret, caret);
+    }
     textarea.focus();
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
   }
@@ -257,7 +265,7 @@
       btn.textContent = item.snippet;
       btn.addEventListener('click', function (ev) {
         ev.stopPropagation();
-        insertCommentSnippet(textarea, item.snippet);
+        insertCommentSnippet(textarea, item.snippet, { replace: true });
         ui.picker.hidden = true;
         ui.openBtn.setAttribute('aria-expanded', 'false');
       });
@@ -676,6 +684,7 @@
         : '<img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org%22 width=%2256%22 height=%2256%22%3E%3Crect fill=%22%231e5078%22 width=%2256%22 height=%2256%22/%3E%3C/svg%3E" alt="" />';
       div.innerHTML = img + '<span>' + escapeHtml(s.full_name) + '</span>';
       div.addEventListener('click', function () {
+        if (i === idx) return;
         idx = i;
         renderCarousel();
         showLearner();
@@ -827,18 +836,19 @@
   async function persistSubjectComment(silent) {
     const s = students[idx];
     if (!s) return 'skipped';
+    const targetStudentId = s.id;
     let body = elBody.value.trim();
     if (!body) {
       if (silent) return 'skipped';
       if (ctx.flash) ctx.flash('Write a comment before saving.', false);
       return 'error';
     }
-    if (silent && body === String(commentForStudent(s.id) || '').trim()) {
+    if (silent && body === String(commentForStudent(targetStudentId) || '').trim()) {
       return 'skipped';
     }
-    const polished = await polishCommentText(body, students, s.id);
+    const polished = await polishCommentText(body, students, targetStudentId);
     body = polished.text;
-    if (polished.changed) {
+    if (polished.changed && students[idx] && students[idx].id === targetStudentId) {
       elBody.value = body;
       elChar.textContent = body.length + ' / 300';
     }
@@ -846,7 +856,7 @@
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({
-        student_id: s.id,
+        student_id: targetStudentId,
         subject: elSubject.value,
         term: Number(elTerm.value),
         period: elPeriod.value,
@@ -888,13 +898,14 @@
     if (!elCTBody) return false;
     const s = students[idx];
     if (!s) return false;
+    const targetStudentId = s.id;
     let body = elCTBody.value.trim();
     if (!body) {
       const res = await fetch('/api/class-teacher-comments', {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
-          student_id: s.id,
+          student_id: targetStudentId,
           term: Number(elTerm.value),
           period: elPeriod.value,
           year: selectedAcademicYear(),
@@ -914,9 +925,9 @@
       if (!silent && ctx.flash) ctx.flash('Class teacher comment cleared.', true);
       return true;
     }
-    const polished = await polishCommentText(body, students, s.id);
+    const polished = await polishCommentText(body, students, targetStudentId);
     body = polished.text;
-    if (polished.changed) {
+    if (polished.changed && students[idx] && students[idx].id === targetStudentId) {
       elCTBody.value = body;
       elCTChar.textContent = body.length + ' / 300';
     }
@@ -924,7 +935,7 @@
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({
-        student_id: s.id,
+        student_id: targetStudentId,
         term: Number(elTerm.value),
         period: elPeriod.value,
         year: selectedAcademicYear(),
@@ -1048,6 +1059,7 @@
     idx = Math.max(0, Math.min(students.length - 1, idx + delta));
     renderCarousel();
     showLearner();
+    scrollCarouselToSelected();
   }
 
   elBody.addEventListener('input', function () {

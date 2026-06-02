@@ -110,17 +110,10 @@
     if (!textarea || !snippet) return;
     const clean = String(snippet).trim();
     if (!clean) return;
-    const raw = String(textarea.value || '');
-    const start = typeof textarea.selectionStart === 'number' ? textarea.selectionStart : raw.length;
-    const end = typeof textarea.selectionEnd === 'number' ? textarea.selectionEnd : raw.length;
-    const before = raw.slice(0, start);
-    const after = raw.slice(end);
-    const prefix = before && !/\s$/.test(before) ? ' ' : '';
-    const suffix = after && !/^\s/.test(after) ? ' ' : '';
-    const next = before + prefix + clean + suffix + after;
-    textarea.value = next;
-    const caret = (before + prefix + clean).length;
-    if (typeof textarea.setSelectionRange === 'function') textarea.setSelectionRange(caret, caret);
+    textarea.value = clean;
+    if (typeof textarea.setSelectionRange === 'function') {
+      textarea.setSelectionRange(clean.length, clean.length);
+    }
     textarea.focus();
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
   }
@@ -330,14 +323,15 @@
       alert('Choose a class first.');
       return;
     }
+    const targetStudentId = s.id;
     let body = elBody.value.trim();
     if (!body) {
       alert('Write a comment before saving.');
       return;
     }
-    const polished = await polishCommentText(body, students, s.id);
+    const polished = await polishCommentText(body, students, targetStudentId);
     body = polished.text;
-    if (polished.changed) {
+    if (polished.changed && students[idx] && students[idx].id === targetStudentId) {
       elBody.value = body;
       elChar.textContent = body.length + ' / 300';
     }
@@ -345,7 +339,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        student_id: s.id,
+        student_id: targetStudentId,
         subject: subjectName,
         term: Number(elTerm.value),
         period: elPeriod.value,

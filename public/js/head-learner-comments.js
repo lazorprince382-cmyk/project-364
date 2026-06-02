@@ -266,12 +266,13 @@
       if (!silent) flashMessage('Nothing new to save for class teacher comment.', false);
       return true;
     }
+    const targetStudentId = s.id;
     let body = elClassTeacherComment.value.trim();
     if (body) {
-      const polished = await polishCommentText(body, students, s.id);
+      const polished = await polishCommentText(body, students, targetStudentId);
       body = polished.text;
       if (body.length > CLASS_TEACHER_MAX) body = body.slice(0, CLASS_TEACHER_MAX);
-      if (polished.changed) {
+      if (polished.changed && students[idx] && students[idx].id === targetStudentId) {
         elClassTeacherComment.value = body;
         if (elClassTeacherChar) elClassTeacherChar.textContent = body.length + ' / ' + CLASS_TEACHER_MAX;
       }
@@ -280,7 +281,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        student_id: s.id,
+        student_id: targetStudentId,
         term: Number(elTerm.value),
         period: elPeriod.value,
         body: body,
@@ -440,19 +441,20 @@
       alert('Choose a class first.');
       return false;
     }
+    const targetStudentId = s.id;
     let body = elBody.value.trim();
     if (!body) {
       if (!allowEmpty) {
         alert('Write a comment before saving, or use Clear comment.');
         return false;
       }
-      const had = commentForStudent(s.id);
+      const had = commentForStudent(targetStudentId);
       if (!had) return true;
     } else {
-      const polished = await polishCommentText(body, students, s.id);
+      const polished = await polishCommentText(body, students, targetStudentId);
       body = polished.text;
       if (body.length > MAX) body = body.slice(0, MAX);
-      if (polished.changed) {
+      if (polished.changed && students[idx] && students[idx].id === targetStudentId) {
         elBody.value = body;
         elChar.textContent = body.length + ' / ' + MAX;
       }
@@ -461,7 +463,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        student_id: s.id,
+        student_id: targetStudentId,
         term: Number(elTerm.value),
         period: elPeriod.value,
         body: body,
