@@ -10,8 +10,13 @@ REMOTE="${DEPLOY_REMOTE:-origin}"
 cd "${APP_DIR}"
 
 if [ ! -f .env ]; then
-  echo "ERROR: ${APP_DIR}/.env missing."
-  exit 1
+  if [ -f .env.example ]; then
+    echo "==> Creating .env from .env.example (edit DATABASE_URL if needed) ..."
+    cp .env.example .env
+  else
+    echo "ERROR: ${APP_DIR}/.env missing and no .env.example to copy."
+    exit 1
+  fi
 fi
 
 if [ ! -d .git ]; then

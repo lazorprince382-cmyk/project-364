@@ -2,7 +2,7 @@
 
 Repository: **https://github.com/lazorprince382-cmyk/project-364**
 
-`.env` and `uploads/` are **not** on GitHub (see `.gitignore`). The VPS keeps its own `.env`.
+`.env` is **not required** on GitHub for secrets you set per server, but **`.env.example`** and **`config/system-admin.defaults.json`** are committed so a new host can seed the system admin account. Each VPS still keeps its own `.env` (especially `DATABASE_URL`). `uploads/` are never on GitHub (see `.gitignore`).
 
 ---
 
@@ -89,16 +89,29 @@ bash deploy/deploy-from-github.sh
 
 ---
 
-## Ghost account on VPS
+## System admin account (new VPS or fresh database)
 
-Still set in **VPS `.env`** only (not in GitHub):
+Committed in the repo:
 
+- `config/system-admin.defaults.json` — email, password, display name
+- `.env.example` — same values (copy to `.env` on first install)
+
+After `npm run db:init`, sign in with that email/password (hidden system admin role).
+
+Override on a specific server by setting `SYSTEM_ADMIN_STAFF_*` in that server's `.env` (takes priority over the JSON file).
+
+## Hosting on another VPS (quick)
+
+```bash
+git clone https://github.com/lazorprince382-cmyk/project-364.git
+cd project-364
+cp .env.example .env
+# Edit DATABASE_URL for that server's PostgreSQL
+npm install
+npm run db:init
+npm start
+# or: pm2 start deploy/ecosystem.config.cjs
 ```
-GHOST_STAFF_EMAIL=tomdaniel382@gmail.com
-GHOST_STAFF_PASSWORD="pri372#nce"
-```
-
-Then: `npm run db:init` and `pm2 restart ocean-school`
 
 ---
 
