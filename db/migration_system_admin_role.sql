@@ -1,16 +1,17 @@
--- Rename hidden superuser role ghost → system_admin (display: System admin).
--- Drop CHECK first so UPDATE to system_admin is allowed.
+-- Ensure school_staff.role CHECK allows system_admin (idempotent on repeat db:init).
 
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'school_staff_role_check'
-  ) THEN
-    ALTER TABLE school_staff DROP CONSTRAINT school_staff_role_check;
-  END IF;
-END $$;
+ALTER TABLE school_staff DROP CONSTRAINT IF EXISTS school_staff_role_check;
 
 UPDATE school_staff SET role = 'system_admin' WHERE role = 'ghost';
+
+UPDATE school_staff SET role = 'director' WHERE role = 'operator';
+
+UPDATE school_staff
+SET role = 'director'
+WHERE role IS NULL
+   OR TRIM(role) NOT IN ('director', 'head_teacher', 'class_teacher', 'skill_teacher', 'system_admin');
+
+ALTER TABLE school_staff DROP CONSTRAINT IF EXISTS school_staff_role_check;
 
 ALTER TABLE school_staff
   ADD CONSTRAINT school_staff_role_check

@@ -1,4 +1,4 @@
--- Hidden superuser role (not listed in staff directories).
+-- Hidden superuser role (system_admin; legacy DB value was ghost).
 
 DO $$
 BEGIN
@@ -11,6 +11,8 @@ BEGIN
   END IF;
 END $$;
 
+UPDATE school_staff SET role = 'system_admin' WHERE role = 'ghost';
+
 ALTER TABLE school_staff
   ADD CONSTRAINT school_staff_role_check
-  CHECK (role IN ('director', 'operator', 'head_teacher', 'class_teacher', 'skill_teacher', 'ghost'));
+  CHECK (role IN ('director', 'operator', 'head_teacher', 'class_teacher', 'skill_teacher', 'system_admin'));

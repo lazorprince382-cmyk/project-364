@@ -42,6 +42,8 @@ WHERE s.role = 'operator'
 
 DELETE FROM school_staff WHERE role = 'operator';
 
+UPDATE school_staff SET role = 'system_admin' WHERE role = 'ghost';
+
 ALTER TABLE school_staff
   ADD CONSTRAINT school_staff_role_check
-  CHECK (role IN ('director', 'head_teacher', 'class_teacher', 'skill_teacher', 'ghost'));
+  CHECK (role IN ('director', 'head_teacher', 'class_teacher', 'skill_teacher', 'system_admin'));
