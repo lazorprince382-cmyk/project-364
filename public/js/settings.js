@@ -524,7 +524,7 @@
     const avatarHint = fileInp && fileInp.parentElement ? fileInp.parentElement.querySelector('.settings-hint') : null;
     if (avatarHint) {
       avatarHint.textContent = hasStaffSession()
-        ? 'Saved on your staff account.'
+        ? 'Choose a photo, crop it, then tap Done to update your account.'
         : 'Sign in to upload a photo.';
     }
 
@@ -534,36 +534,59 @@
     updateAvatarPreview(getAvatarUrl() || '');
 
     if (fileInp && preview) {
-      fileInp.addEventListener('change', async function () {
+      fileInp.addEventListener('change', function () {
         const f = fileInp.files[0];
+        fileInp.value = '';
         if (!f) return;
         if (!hasStaffSession()) {
           alert('Sign in to save a profile photo on your account.');
-          fileInp.value = '';
           return;
         }
-        const fd = new FormData();
-        fd.append('avatar', f);
-        try {
-          const res = await fetch('/api/profile/avatar', {
-            method: 'POST',
-            headers: { Authorization: 'Bearer ' + sessionStorage.getItem(TOKEN_KEY) },
-            body: fd,
-          });
-          const data = await res.json().catch(function () {
-            return {};
-          });
-          if (!res.ok) throw new Error(data.error || 'Upload failed');
-          mergeStaffSession({ avatar_url: data.url });
-          updateAvatarPreview(data.url);
-          syncProfileBar();
+
+        async function uploadAvatarFile(file) {
+          const fd = new FormData();
+          fd.append('avatar', file, file.name || 'avatar.jpg');
           try {
-            window.dispatchEvent(new CustomEvent('ocean-profile-updated'));
-          } catch (_) {}
-        } catch (e) {
-          alert(e.message || 'Could not upload photo');
+            const res = await fetch('/api/profile/avatar', {
+              method: 'POST',
+              headers: { Authorization: 'Bearer ' + sessionStorage.getItem(TOKEN_KEY) },
+              body: fd,
+            });
+            const data = await res.json().catch(function () {
+              return {};
+            });
+            if (!res.ok) throw new Error(data.error || 'Upload failed');
+            mergeStaffSession({ avatar_url: data.url });
+            updateAvatarPreview(data.url);
+            syncProfileBar();
+            try {
+              window.dispatchEvent(new CustomEvent('ocean-profile-updated'));
+            } catch (_) {}
+            const flash = document.getElementById('flash');
+            if (flash) {
+              flash.innerHTML = '<div class="msg ok">Profile photo updated.</div>';
+              setTimeout(function () {
+                flash.innerHTML = '';
+              }, 3500);
+            }
+          } catch (e) {
+            alert(e.message || 'Could not upload photo');
+          }
         }
-        fileInp.value = '';
+
+        if (window.OceanImageCrop) {
+          window.OceanImageCrop.open({
+            file: f,
+            aspectRatio: window.OceanImageCrop.AVATAR,
+            title: 'Crop profile photo',
+            maxWidth: 512,
+            maxHeight: 512,
+            fileName: 'avatar',
+            onDone: uploadAvatarFile,
+          });
+          return;
+        }
+        uploadAvatarFile(f);
       });
     }
 

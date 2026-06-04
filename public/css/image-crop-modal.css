@@ -1,0 +1,78 @@
+.ocean-image-crop-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.ocean-image-crop-modal.is-open {
+  display: flex;
+}
+
+.ocean-image-crop-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 8, 23, 0.78);
+}
+
+.ocean-image-crop-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 100%);
+  max-height: calc(100vh - 2rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem 1rem 1.1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: linear-gradient(180deg, #0f2744 0%, #0b1a30 100%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  color: #e2e8f0;
+}
+
+.ocean-image-crop-dialog h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.ocean-image-crop-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.ocean-image-crop-stage {
+  width: 100%;
+  max-height: min(58vh, 420px);
+  min-height: 220px;
+  background: #020617;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ocean-image-crop-stage img {
+  display: block;
+  max-width: 100%;
+}
+
+.ocean-image-crop-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.ocean-image-crop-actions .btn-primary {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+.ocean-image-crop-actions .btn-primary:hover {
+  filter: brightness(1.06);
+}

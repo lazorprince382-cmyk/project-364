@@ -70,6 +70,9 @@
       .trim()
       .replace(/\s+/g, ' ');
     if (!p) return p;
+    if (window.OceanWeeklyGoalRatings && window.OceanWeeklyGoalRatings.sanitizeRatingPhrase) {
+      p = window.OceanWeeklyGoalRatings.sanitizeRatingPhrase(p);
+    }
     const lower = p.charAt(0).toLowerCase() + p.slice(1);
 
     if (/^not yet\b/i.test(lower)) return lower;

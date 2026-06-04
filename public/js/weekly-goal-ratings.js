@@ -23,6 +23,21 @@
     'i'
   );
 
+  const RATING_PREFIX_PATTERNS = [
+    /^is\s+not\s+yet\s+able\s+to\s+/i,
+    /^is\s+not\s+yet\s+/i,
+    /^is\s+beginning\s+to\s+/i,
+    /^is\s+able\s+to\s+/i,
+    /^be\s+able\s+to\s+/i,
+    /^can\s+/i,
+    /^could\s+/i,
+    /^will\s+be\s+able\s+to\s+/i,
+    /^learn(?:ers?)?\s+(?:how\s+)?to\s+/i,
+    /^learn(?:ing)?\s+(?:how\s+)?to\s+/i,
+    /^learn(?:ing)?\s+/i,
+    /^to\s+/i,
+  ];
+
   function lowercaseFirst(text) {
     const s = String(text || '').trim();
     if (!s) return s;
@@ -41,15 +56,25 @@
       .trim();
   }
 
+  /** Remove learner-rating prefixes so we only keep the skill/action. */
+  function stripRatingPhrasePrefixes(text) {
+    let out = String(text || '').trim();
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (let i = 0; i < RATING_PREFIX_PATTERNS.length; i++) {
+        const next = out.replace(RATING_PREFIX_PATTERNS[i], '').trim();
+        if (next !== out) {
+          out = next;
+          changed = true;
+        }
+      }
+    }
+    return out;
+  }
+
   function stripLearningPrefixes(text) {
-    return String(text || '')
-      .trim()
-      .replace(/^learn(?:ers?)?\s+(?:how\s+)?to\s+/i, '')
-      .replace(/^learn(?:ing)?\s+(?:how\s+)?to\s+/i, '')
-      .replace(/^learn(?:ing)?\s+/i, '')
-      .replace(/^to\s+/i, '')
-      .replace(/^be able to\s+/i, '')
-      .trim();
+    return stripRatingPhrasePrefixes(text);
   }
 
   function stripClassWideSubject(text) {
@@ -68,6 +93,7 @@
 
   function extractSkillFromBrokenGoal(text) {
     const patterns = [
+      new RegExp('^(?:' + CLASS_SUBJECTS + ')\\s+' + MODAL + '\\s+' + ABLE + '(.+)$', 'i'),
       new RegExp(MODAL + '\\s+' + ABLE + '(.+)$', 'i'),
       /be able to\s+(.+)$/i,
       /(?:should|must|will|need to)\s+(.+)$/i,
@@ -103,34 +129,59 @@
     return lowercaseFirst(text);
   }
 
+  function isGerundSkill(skill) {
+    const firstWord = (skill.split(/\s+/)[0] || '').toLowerCase();
+    return /^[a-z]{3,}ing$/.test(firstWord) && firstWord !== 'being';
+  }
+
+  /** Fix stored rating lines that doubled prefixes (e.g. "is not yet able to is able to …"). */
+  function sanitizeRatingPhrase(phrase) {
+    let p = String(phrase || '')
+      .trim()
+      .replace(/\s+/g, ' ');
+    if (!p) return p;
+    p = p.replace(/^is\s+not\s+yet\s+able\s+to\s+is\s+able\s+to\s+/i, 'is not yet able to ');
+    p = p.replace(/^is\s+not\s+yet\s+able\s+to\s+can\s+/i, 'is not yet able to ');
+    p = p.replace(/^not\s+yet\s+able\s+to\s+is\s+able\s+to\s+/i, 'is not yet able to ');
+    if (/^can\s+/i.test(p)) p = 'is able to ' + p.slice(4);
+    return p;
+  }
+
   function suggestRatingOptionsFromGoal(goalText) {
     const skill = goalToIndividualSkill(goalText);
     if (!skill || looksLikeUnresolvedClassGoal(skill)) return [];
 
-    const firstWord = (skill.split(/\s+/)[0] || '').toLowerCase();
-    const isGerund = /^[a-z]{3,}ing$/.test(firstWord) && firstWord !== 'being';
-
-    if (isGerund) {
+    if (isGerundSkill(skill)) {
       return [
         'is ' + skill + ' with ease',
         'is ' + skill + ' with some guidance',
         'is ' + skill + ' with close support',
         'is making early progress with ' + skill,
         'is not yet ' + skill,
-      ];
+      ].map(sanitizeRatingPhrase);
     }
 
     return [
-      'can ' + skill + ' with ease',
-      'can ' + skill + ' with some guidance',
-      'can ' + skill + ' with close support',
+      'is able to ' + skill + ' with ease',
+      'is able to ' + skill + ' with some guidance',
+      'is able to ' + skill + ' with close support',
       'is beginning to ' + skill,
       'is not yet able to ' + skill,
-    ];
+    ].map(sanitizeRatingPhrase);
+  }
+
+  /** Short label for progress chart legend; lowest band gets more room. */
+  function progressLegendLabel(label, index, total) {
+    const full = sanitizeRatingPhrase(label);
+    const maxLen = index === total - 1 ? 48 : 34;
+    if (full.length <= maxLen) return { text: full, title: full };
+    return { text: full.slice(0, maxLen - 1) + '…', title: full };
   }
 
   global.OceanWeeklyGoalRatings = {
     goalToIndividualSkill: goalToIndividualSkill,
     suggestRatingOptionsFromGoal: suggestRatingOptionsFromGoal,
+    sanitizeRatingPhrase: sanitizeRatingPhrase,
+    progressLegendLabel: progressLegendLabel,
   };
 })(window);

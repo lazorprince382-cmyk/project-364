@@ -88,13 +88,20 @@
       .slice(0, 8);
   }
 
+  function sanitizeRatingLabel(label) {
+    if (window.OceanWeeklyGoalRatings && window.OceanWeeklyGoalRatings.sanitizeRatingPhrase) {
+      return window.OceanWeeklyGoalRatings.sanitizeRatingPhrase(label);
+    }
+    return String(label || '').trim();
+  }
+
   function getEffectiveRatingOptions(rawOptions) {
     const custom = parseRatingOptionsText(Array.isArray(rawOptions) ? rawOptions.join('\n') : rawOptions);
     if (custom.length >= 2) {
       return {
         custom: true,
         options: custom.map(function (label) {
-          return { value: label, label: label };
+          return { value: label, label: sanitizeRatingLabel(label) };
         }),
       };
     }
@@ -355,12 +362,21 @@
         ratingPack.options
           .map(function (opt, i) {
             const color = palette[Math.min(i, palette.length - 1)];
-            const lbl = opt.label.length > 28 ? opt.label.slice(0, 26) + '…' : opt.label;
+            const legend =
+              window.OceanWeeklyGoalRatings && window.OceanWeeklyGoalRatings.progressLegendLabel
+                ? window.OceanWeeklyGoalRatings.progressLegendLabel(
+                    opt.label,
+                    i,
+                    ratingPack.options.length
+                  )
+                : { text: opt.label, title: opt.label };
             return (
-              '<div class="class-progress-legend-item"><span><span class="class-progress-dot" style="background:' +
+              '<div class="class-progress-legend-item"><span title="' +
+              escapeHtml(legend.title) +
+              '"><span class="class-progress-dot" style="background:' +
               color +
               '"></span>' +
-              escapeHtml(lbl) +
+              escapeHtml(legend.text) +
               '</span><strong>' +
               (counts[opt.value] || 0) +
               '</strong></div>'

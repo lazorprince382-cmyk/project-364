@@ -13,7 +13,7 @@
     class: {
       title: 'Sign in to open this class',
       subtitle: 'Use your school email and password to continue.',
-      roles: ['class_teacher', 'head_teacher', 'director', 'system_admin'],
+      roles: ['class_teacher', 'skill_teacher', 'head_teacher', 'director', 'system_admin'],
       wrongRoleError: 'This sign-in is not for your account type.',
     },
     skill: {

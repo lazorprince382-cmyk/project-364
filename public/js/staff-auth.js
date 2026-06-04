@@ -321,7 +321,7 @@
   function gateNavigate(targetUrl, opts) {
     const options = opts || {};
     const loginPath = options.loginPath || '/login-class.html';
-    const roles = options.roles || ['class_teacher', 'head_teacher', 'director'];
+    const roles = options.roles || ['class_teacher', 'skill_teacher', 'head_teacher', 'director'];
     const staff = getStoredStaff();
     const token = sessionStorage.getItem(TOKEN_KEY);
     if (!token || !staff) {
@@ -422,6 +422,18 @@
     } catch (_) {
       return null;
     }
+  }
+
+  /** Skill teachers (e.g. Computer) may open any class workspace; class teachers stay scoped. */
+  function canOpenAnyClassDashboard(staff) {
+    if (!staff) return false;
+    if (isSystemAdminStaff(staff)) return true;
+    const role = staff.role;
+    return (
+      role === 'skill_teacher' ||
+      role === 'head_teacher' ||
+      role === 'director'
+    );
   }
 
   function staffMatchesClassTarget(staff, classLevel, stream) {
@@ -576,6 +588,7 @@
     skillSlugForStaff: skillSlugForStaff,
     requireSync: requireSync,
     parseClassDashboardUrl: parseClassDashboardUrl,
+    canOpenAnyClassDashboard: canOpenAnyClassDashboard,
     staffMatchesClassTarget: staffMatchesClassTarget,
     assertClassScope: assertClassScope,
     assertSkillScope: assertSkillScope,
