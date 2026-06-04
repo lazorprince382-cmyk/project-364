@@ -32,6 +32,7 @@
           <button type="button" class="tab dash-nav-btn" data-tab="children">All children</button>
           <button type="button" class="tab dash-nav-btn" data-tab="progress">Weekly progress</button>
           <button type="button" class="tab dash-nav-btn" data-tab="skill-comments">Comments</button>
+          <button type="button" class="tab dash-nav-btn" data-tab="skill-reports">Report templates</button>
           <button type="button" class="tab dash-nav-btn" data-tab="skill-messages">Messages</button>
           <button type="button" class="tab dash-nav-btn" data-tab="settings">Settings</button>
         </nav>
@@ -90,6 +91,7 @@
               <button type="button" class="tab" data-tab="children">Children</button>
               <button type="button" class="tab" data-tab="progress">Weekly progress</button>
               <button type="button" class="tab" data-tab="skill-comments">Comments</button>
+              <button type="button" class="tab" data-tab="skill-reports">Report templates</button>
               <button type="button" class="tab" data-tab="skill-messages">Messages</button>
               <button type="button" class="tab" data-tab="settings">Settings</button>
             </div>
@@ -567,6 +569,56 @@
             </div>
           </div>
 
+          <div id="panel-comments" class="tab-panel" hidden aria-hidden="true"></div>
+
+          <div id="panel-skill-reports" class="tab-panel panel dash-panel-pad">
+            <h3 style="margin-top: 0; font-size: 1.05rem">Class report templates</h3>
+            <p class="dir-muted" style="margin-top: 0; max-width: 720px">
+              View how reports look for any class. Pick class, term, and reporting period — read-only preview (same layout class teachers use).
+            </p>
+            <div class="comments-toolbar" style="margin-bottom: 1rem">
+              <div>
+                <label for="sk-rp-class">Class</label>
+                <select id="sk-rp-class"></select>
+              </div>
+              <div id="sk-rp-stream-wrap" style="display: none">
+                <label for="sk-rp-stream">Stream</label>
+                <select id="sk-rp-stream"></select>
+              </div>
+              <div>
+                <label for="rp-term">Term</label>
+                <select id="rp-term">
+                  <option value="1">Term 1</option>
+                  <option value="2">Term 2</option>
+                  <option value="3">Term 3</option>
+                </select>
+              </div>
+              <div>
+                <label for="rp-year">Year</label>
+                <select id="rp-year"></select>
+                <input id="rp-year-custom" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Type year" style="display: none; margin-top: 0.35rem" />
+              </div>
+              <div>
+                <label for="rp-period">Reporting period</label>
+                <select id="rp-period">
+                  <option value="begin">Beginning of term</option>
+                  <option value="mid">Mid term</option>
+                  <option value="end">End of term</option>
+                </select>
+              </div>
+              <div style="min-width: 220px">
+                <label for="rp-student">Learner</label>
+                <select id="rp-student"></select>
+              </div>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem">
+              <button type="button" class="btn btn-primary" id="rp-refresh">Load report</button>
+              <button type="button" class="btn" id="rp-print">Print / Save PDF</button>
+            </div>
+            <p id="rp-empty" class="dir-muted" style="display: none">No learners in this class yet.</p>
+            <section id="rp-template" class="report-sheet" aria-label="Learner report template preview"></section>
+          </div>
+
           <div id="panel-settings" class="tab-panel panel dash-panel-pad">
             <h3 style="margin-top: 0; font-size: 1.05rem">Settings</h3>
             <p style="color: var(--muted); font-size: 0.92rem; margin-top: 0">Name and photo on your staff account. Theme stays on this device.</p>
@@ -628,8 +680,9 @@
     <script src="/js/staff-auth.js?v=20260531d"></script>
     <script src="/js/brand.js"></script>
     <script src="/js/classes-config.js"></script>
+    <script src="/js/subjects.js"></script>
     <script src="/js/welcome-banner.js?v=20260531f"></script>
-    <script src="/js/skill-dashboard.js?v=20260531k"></script>
+    <script src="/js/skill-dashboard.js?v=20260604e"></script>
     <script src="/js/message-notify.js"></script>
     <script src="/js/dm-voice.js?v=20260601g"></script>
     <script src="/js/leadership-messages.js?v=20260601g"></script>
@@ -637,6 +690,7 @@
     <script src="/js/weekly-goal-ratings.js?v=20260604a"></script>
     <script src="/js/skill-progress.js?v=20260604a"></script>
     <script src="/js/skill-learner-comments.js?v=20260531j"></script>
+    <script src="/js/class-comments.js?v=20260604e"></script>
     <script src="/js/password-field.js?v=20260531a"></script>
     <script src="/js/image-crop-modal.js?v=20260604a"></script>
     <script src="/js/settings.js?v=20260604b"></script>

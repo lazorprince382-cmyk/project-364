@@ -4,7 +4,9 @@
  */
 (function () {
   const panel = document.getElementById('panel-comments');
-  if (!panel || !window.__oceanDashboard) return;
+  const skillReportsPanel = document.getElementById('panel-skill-reports');
+  if (!window.__oceanDashboard) return;
+  if (!panel && !skillReportsPanel) return;
 
   const ctx = window.__oceanDashboard;
   const skillList = ctx.skillOnlySubjects || [];

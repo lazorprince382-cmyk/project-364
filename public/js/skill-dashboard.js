@@ -84,11 +84,105 @@
 
   const subjectName = meta.subject;
 
+  function isPrimaryLike(cl) {
+    return String(cl || '').toLowerCase().indexOf('primary') === 0;
+  }
+
+  function classCatalogForReports() {
+    return (window.OCEAN_CLASSES || []).filter(function (c) {
+      return c && c.id && c.id !== 'skills' && !c.needsSkillPick;
+    });
+  }
+
+  function buildDashboardCtx(classLevel, stream) {
+    const cl = auth && auth.normalizeClassLevelSlug ? auth.normalizeClassLevelSlug(classLevel) : classLevel;
+    const st = String(stream || '').trim().toLowerCase();
+    const displayTitle = titles[cl] || cl;
+    const streamPart = st ? ' · ' + (streamLabels[st] || st) : '';
+    return {
+      classLevel: cl,
+      stream: st,
+      displayTitle: displayTitle,
+      streamPart: streamPart,
+      streamLabels: streamLabels,
+      titles: titles,
+      isPrimary: isPrimaryLike(cl),
+      subjects: (window.OCEAN_SUBJECTS && window.OCEAN_SUBJECTS[cl]) || [],
+      skillOnlySubjects: window.OCEAN_SKILL_SUBJECTS || [],
+      flash: flash,
+    };
+  }
+
+  const reportCatalog = classCatalogForReports();
+  const defaultClass = reportCatalog[0] || { id: 'baby', streams: [{ id: 'waves' }] };
+  const defaultStream =
+    defaultClass.needsStream && defaultClass.streams && defaultClass.streams.length
+      ? defaultClass.streams[0].id
+      : '';
+
+  function findReportClassConfig(classId) {
+    return reportCatalog.find(function (c) {
+      return c.id === classId;
+    });
+  }
+
+  function syncSkillReportClassContext() {
+    const classEl = document.getElementById('sk-rp-class');
+    const streamWrap = document.getElementById('sk-rp-stream-wrap');
+    const streamEl = document.getElementById('sk-rp-stream');
+    if (!classEl || !window.__oceanDashboard) return;
+    const cfg = findReportClassConfig(classEl.value) || defaultClass;
+    const needsStream = !!cfg.needsStream;
+    if (streamWrap) streamWrap.style.display = needsStream ? '' : 'none';
+    if (streamEl && needsStream) {
+      const prev = streamEl.value;
+      streamEl.innerHTML = '';
+      (cfg.streams || []).forEach(function (s) {
+        const o = document.createElement('option');
+        o.value = s.id;
+        o.textContent = s.label || s.id;
+        streamEl.appendChild(o);
+      });
+      if (prev && streamEl.querySelector('option[value="' + prev + '"]')) streamEl.value = prev;
+      else if (cfg.streams && cfg.streams[0]) streamEl.value = cfg.streams[0].id;
+    }
+    const streamVal = needsStream && streamEl ? streamEl.value : '';
+    const next = buildDashboardCtx(cfg.id, streamVal);
+    if (!window.__oceanDashboard) window.__oceanDashboard = next;
+    else Object.assign(window.__oceanDashboard, next);
+    window.__oceanDashboard.flash = flash;
+    if (typeof switchToTab === 'function') window.__oceanDashboard.switchToTab = switchToTab;
+  }
+
+  function refreshSkillReportPreview() {
+    syncSkillReportClassContext();
+    const btn = document.getElementById('rp-refresh');
+    if (btn) btn.click();
+  }
+
+  function initSkillReportClassPickers() {
+    const classEl = document.getElementById('sk-rp-class');
+    if (!classEl || classEl.dataset.bound) return;
+    classEl.dataset.bound = '1';
+    classEl.innerHTML = '';
+    reportCatalog.forEach(function (c) {
+      const o = document.createElement('option');
+      o.value = c.id;
+      o.textContent = c.title || c.id;
+      classEl.appendChild(o);
+    });
+    classEl.value = defaultClass.id;
+    syncSkillReportClassContext();
+    classEl.addEventListener('change', refreshSkillReportPreview);
+    const streamEl = document.getElementById('sk-rp-stream');
+    if (streamEl) streamEl.addEventListener('change', refreshSkillReportPreview);
+  }
+
   window.__oceanSkill = { subjectName: subjectName, label: meta.label };
 
   document.getElementById('skill-dash-title').textContent = meta.label + ' — skill teacher';
   document.getElementById('skill-dash-sub').textContent =
-    'Notes · Learner comments · All children · Weekly progress · Settings';
+    'Notes · Learner comments · Report templates · All children · Weekly progress · Settings';
   document.getElementById('skill-name-repeat').textContent = meta.label;
   document.getElementById('skill-name-progress').textContent = meta.label;
   const scLab = document.getElementById('sc-subject-label');
@@ -738,6 +832,10 @@
     if (name === 'skill-comments' && window.__oceanSkillCommentsInit) {
       window.__oceanSkillCommentsInit();
     }
+    if (name === 'skill-reports') {
+      syncSkillReportClassContext();
+      if (window.__oceanReportsInit) window.__oceanReportsInit();
+    }
     if (name === 'skill-messages' && window.__oceanLeaderMessagesInit) {
       window.__oceanLeaderMessagesInit();
     }
@@ -749,6 +847,10 @@
 
   window.__oceanSkill.switchToTab = switchToTab;
   window.__oceanSkill.addNotification = addNotification;
+
+  window.__oceanDashboard = buildDashboardCtx(defaultClass.id, defaultStream);
+  window.__oceanDashboard.switchToTab = switchToTab;
+  window.__oceanDashboard.flash = flash;
 
   document.querySelectorAll('.tab').forEach(function (tab) {
     tab.addEventListener('click', function () {
@@ -803,6 +905,7 @@
     return loadDocuments();
   });
   loadSkillWorkspaceNotes();
+  initSkillReportClassPickers();
 
   setTimeout(function () {
     const staffDm = auth && auth.getStoredStaff ? auth.getStoredStaff() : null;
