@@ -682,7 +682,7 @@
     <script src="/js/classes-config.js"></script>
     <script src="/js/subjects.js"></script>
     <script src="/js/welcome-banner.js?v=20260531f"></script>
-    <script src="/js/skill-dashboard.js?v=20260604e"></script>
+    <script src="/js/skill-dashboard.js?v=20260604f"></script>
     <script src="/js/message-notify.js"></script>
     <script src="/js/dm-voice.js?v=20260601g"></script>
     <script src="/js/leadership-messages.js?v=20260601g"></script>
@@ -690,7 +690,29 @@
     <script src="/js/weekly-goal-ratings.js?v=20260604a"></script>
     <script src="/js/skill-progress.js?v=20260604a"></script>
     <script src="/js/skill-learner-comments.js?v=20260531j"></script>
-    <script src="/js/class-comments.js?v=20260604e"></script>
+    <script>
+      window.__oceanDashboard = window.__oceanDashboard || {
+        classLevel: 'baby',
+        stream: 'waves',
+        displayTitle: 'Baby Class',
+        streamPart: ' · Waves',
+        streamLabels: { waves: 'Waves', pearls: 'Pearls', dolphins: 'Dolphins', whales: 'Whales' },
+        titles: {
+          daycare: 'Day Care',
+          baby: 'Baby Class',
+          middle: 'Middle Class',
+          top: 'Top Class',
+          primary1: 'Primary One',
+          primary2: 'Primary Two',
+        },
+        isPrimary: false,
+        subjects: [],
+        skillOnlySubjects: ['Computer', 'Salon', 'Bakery', 'Fashion and Design', 'Music'],
+        flash: function () {},
+        switchToTab: function () {},
+      };
+    </script>
+    <script src="/js/class-comments.js?v=20260604f"></script>
     <script src="/js/password-field.js?v=20260531a"></script>
     <script src="/js/image-crop-modal.js?v=20260604a"></script>
     <script src="/js/settings.js?v=20260604b"></script>

@@ -2193,7 +2193,7 @@
     const templateOpen = document.getElementById('rp-template-open');
     const target = document.getElementById('rp-template');
     const empty = document.getElementById('rp-empty');
-    if (!termEl || !periodEl || !studentEl || !target || !empty || !nextTermEl || !yearEl) return;
+    if (!termEl || !periodEl || !studentEl || !target || !empty || !yearEl) return;
 
     const term = termEl.value;
     const customYear =
@@ -2240,11 +2240,13 @@
       }
     }
     const isEndPeriod = period === 'end';
-    const nextTermWrap = nextTermEl.parentElement;
-    const nextTermSaveBtn = document.getElementById('rp-save-next-term');
-    if (nextTermWrap) nextTermWrap.style.display = isEndPeriod ? '' : 'none';
-    if (nextTermSaveBtn) nextTermSaveBtn.style.display = isEndPeriod ? '' : 'none';
-    if (document.activeElement !== nextTermEl) nextTermEl.value = nextTermBegins;
+    if (nextTermEl) {
+      const nextTermWrap = nextTermEl.parentElement;
+      const nextTermSaveBtn = document.getElementById('rp-save-next-term');
+      if (nextTermWrap) nextTermWrap.style.display = isEndPeriod ? '' : 'none';
+      if (nextTermSaveBtn) nextTermSaveBtn.style.display = isEndPeriod ? '' : 'none';
+      if (document.activeElement !== nextTermEl) nextTermEl.value = nextTermBegins;
+    }
     if (templateOpen) {
       if (templatePath) {
         templateOpen.href = templatePath;
@@ -2296,7 +2298,9 @@
     fh.forEach(function (r) { headBy[r.student_id] = r.body || ''; });
     fct.forEach(function (r) { ctBy[r.student_id] = r.body || ''; });
 
-    const reportNextTerm = isEndPeriod ? nextTermEl.value || nextTermBegins : '';
+    const reportNextTerm = isEndPeriod
+      ? (nextTermEl ? nextTermEl.value : '') || nextTermBegins
+      : '';
     if (studentEl.value === '__all__') {
       target.innerHTML =
         '<div class="report-stack">' +
@@ -3367,38 +3371,44 @@
     refreshExportTable();
   };
 
-  window.__oceanReportsInit = function () {
+  function populateReportYearSelect(defaultYear) {
+    if (!rpYear) return;
+    const now = new Date().getFullYear();
+    const pick = Number.isFinite(Number(defaultYear)) ? Number(defaultYear) : now;
+    rpYear.innerHTML = '';
+    for (let y = now - 2; y <= now + 2; y += 1) {
+      const o = document.createElement('option');
+      o.value = String(y);
+      o.textContent = String(y);
+      if (y === pick) o.selected = true;
+      rpYear.appendChild(o);
+    }
+    const customOpt = document.createElement('option');
+    customOpt.value = '__custom__';
+    customOpt.textContent = 'Custom year...';
+    rpYear.appendChild(customOpt);
+    if (![now - 2, now - 1, now, now + 1, now + 2].includes(pick)) {
+      rpYear.value = '__custom__';
+      if (rpYearCustom) {
+        rpYearCustom.style.display = '';
+        rpYearCustom.value = String(pick);
+      }
+    } else if (rpYearCustom) {
+      rpYearCustom.style.display = 'none';
+      rpYearCustom.value = '';
+    }
+  }
+
+  function finishReportsInit(ctx0) {
     const ct = document.getElementById('cc-term');
     const cp = document.getElementById('cc-period');
-    fetchSchoolReportingContext().then(function (ctx0) {
-      const defaultTerm = ctx0 && ctx0.term ? String(ctx0.term) : ct ? ct.value : '1';
-      const defaultPeriod = ctx0 && ctx0.period ? String(ctx0.period) : cp ? cp.value : 'mid';
-      const defaultYear = ctx0 && ctx0.year ? Number(ctx0.year) : new Date().getFullYear();
-      if (rpTerm) rpTerm.value = defaultTerm;
-      if (rpPeriod) rpPeriod.value = defaultPeriod;
-      if (rpYear) {
-        const now = new Date().getFullYear();
-        rpYear.innerHTML = '';
-        for (let y = now - 2; y <= now + 2; y += 1) {
-          const o = document.createElement('option');
-          o.value = String(y);
-          o.textContent = String(y);
-          if (y === defaultYear) o.selected = true;
-          rpYear.appendChild(o);
-        }
-        const customOpt = document.createElement('option');
-        customOpt.value = '__custom__';
-        customOpt.textContent = 'Custom year...';
-        rpYear.appendChild(customOpt);
-        if (![now - 2, now - 1, now, now + 1, now + 2].includes(defaultYear)) {
-          rpYear.value = '__custom__';
-          if (rpYearCustom) {
-            rpYearCustom.style.display = '';
-            rpYearCustom.value = String(defaultYear);
-          }
-        }
-      }
-      if (hrYear) {
+    const defaultTerm = ctx0 && ctx0.term ? String(ctx0.term) : ct ? ct.value : '1';
+    const defaultPeriod = ctx0 && ctx0.period ? String(ctx0.period) : cp ? cp.value : 'mid';
+    const defaultYear = ctx0 && ctx0.year ? Number(ctx0.year) : new Date().getFullYear();
+    if (rpTerm) rpTerm.value = defaultTerm;
+    if (rpPeriod) rpPeriod.value = defaultPeriod;
+    populateReportYearSelect(defaultYear);
+    if (hrYear) {
         hrYear.innerHTML = '';
         const now = new Date().getFullYear();
         for (let y = now - 5; y <= now + 2; y += 1) {
@@ -3424,14 +3434,29 @@
           if (hrStatus) hrStatus.textContent = '';
         });
       }
-      if (rpYearCustom && rpYear.value !== '__custom__') {
-        rpYearCustom.style.display = 'none';
-        rpYearCustom.value = '';
-      }
-      setReportSubview('current');
-      refreshReportTemplate();
-      refreshReportWorkflowUi();
+    if (rpYearCustom && rpYear && rpYear.value !== '__custom__') {
+      rpYearCustom.style.display = 'none';
+      rpYearCustom.value = '';
+    }
+    if (rpTabCurrent) setReportSubview('current');
+    return refreshReportTemplate().then(function () {
+      return refreshReportWorkflowUi();
     });
+  }
+
+  window.__oceanReportsInit = function () {
+    populateReportYearSelect(new Date().getFullYear());
+    return fetchSchoolReportingContext()
+      .then(finishReportsInit)
+      .catch(function () {
+        return finishReportsInit(null);
+      });
+  };
+
+  window.OceanClassReports = {
+    init: window.__oceanReportsInit,
+    refresh: refreshReportTemplate,
+    populateYears: populateReportYearSelect,
   };
 
   let reportScaleResizeTimer = null;

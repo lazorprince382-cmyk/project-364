@@ -156,6 +156,9 @@
 
   function refreshSkillReportPreview() {
     syncSkillReportClassContext();
+    if (window.OceanClassReports && typeof window.OceanClassReports.refresh === 'function') {
+      return window.OceanClassReports.refresh();
+    }
     const btn = document.getElementById('rp-refresh');
     if (btn) btn.click();
   }
@@ -204,6 +207,9 @@
       el.innerHTML = '';
     }, 5000);
   }
+
+  window.__oceanDashboard = buildDashboardCtx(defaultClass.id, defaultStream);
+  window.__oceanDashboard.flash = flash;
 
   function escapeHtml(s) {
     const d = document.createElement('div');
@@ -834,7 +840,11 @@
     }
     if (name === 'skill-reports') {
       syncSkillReportClassContext();
-      if (window.__oceanReportsInit) window.__oceanReportsInit();
+      if (window.OceanClassReports && typeof window.OceanClassReports.init === 'function') {
+        window.OceanClassReports.init();
+      } else if (window.__oceanReportsInit) {
+        window.__oceanReportsInit();
+      }
     }
     if (name === 'skill-messages' && window.__oceanLeaderMessagesInit) {
       window.__oceanLeaderMessagesInit();
@@ -848,7 +858,6 @@
   window.__oceanSkill.switchToTab = switchToTab;
   window.__oceanSkill.addNotification = addNotification;
 
-  window.__oceanDashboard = buildDashboardCtx(defaultClass.id, defaultStream);
   window.__oceanDashboard.switchToTab = switchToTab;
   window.__oceanDashboard.flash = flash;
 
@@ -906,6 +915,11 @@
   });
   loadSkillWorkspaceNotes();
   initSkillReportClassPickers();
+  setTimeout(function () {
+    if (window.OceanClassReports && typeof window.OceanClassReports.init === 'function') {
+      window.OceanClassReports.init();
+    }
+  }, 0);
 
   setTimeout(function () {
     const staffDm = auth && auth.getStoredStaff ? auth.getStoredStaff() : null;
