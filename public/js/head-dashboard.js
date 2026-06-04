@@ -1056,11 +1056,16 @@
     if (name === 'staff') {
       loadStaffTable();
     }
+    if (name === 'learner-lookup' && window.__oceanLearnerLookupInit) {
+      window.__oceanLearnerLookupInit();
+    }
     if (name === 'settings' && window.OceanSettings) {
       window.OceanSettings.syncProfileBar();
       window.OceanSettings.applyTipsVisibility();
     }
   }
+
+  window.__oceanHeadSwitchTab = switchToTab;
 
   function humanClassLevel(cl) {
     return titles[cl] || cl || '';

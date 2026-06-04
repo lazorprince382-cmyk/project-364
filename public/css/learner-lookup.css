@@ -1,0 +1,368 @@
+.ll-search-wrap {
+  position: relative;
+  max-width: 520px;
+  margin-bottom: 1.25rem;
+}
+
+.ll-search-wrap input[type='search'] {
+  width: 100%;
+}
+
+.ll-suggestions {
+  position: absolute;
+  z-index: 40;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--card, #0f2744);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.ll-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ll-suggestion:hover,
+.ll-suggestion:focus {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ll-suggestion img {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.ll-suggestion-meta {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.ll-empty {
+  color: var(--muted);
+  padding: 1.5rem 0;
+}
+
+.ll-profile {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem 1.25rem;
+  align-items: start;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.25rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ll-profile-photo {
+  width: 96px;
+  height: 96px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.ll-profile-photo.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.ll-profile h4 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+}
+
+.ll-profile-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+  margin: 0.5rem 0 0;
+  font-size: 0.92rem;
+}
+
+.ll-profile-dl dt {
+  color: var(--muted);
+  margin: 0;
+}
+
+.ll-profile-dl dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.ll-subjects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.ll-subject-pill {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.ll-filters {
+  margin-bottom: 1rem;
+}
+
+.ll-year-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+
+.ll-year-banner {
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  min-width: 7rem;
+  text-align: center;
+}
+
+.ll-year-nav .btn {
+  min-width: 2.5rem;
+}
+
+.ll-section {
+  margin-top: 1.5rem;
+}
+
+.ll-section h4 {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+}
+
+.ll-weekly-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.ll-weekly-head h4 {
+  margin: 0;
+}
+
+.ll-weekly-subject-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 12rem;
+}
+
+.ll-weekly-subject-wrap label {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.ll-weekly-subject-wrap select {
+  min-width: 12rem;
+  max-width: 100%;
+}
+
+.ll-weekly-grid-wrap {
+  margin-bottom: 1rem;
+}
+
+.ll-weekly-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 0.65rem;
+}
+
+.ll-weekly-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ll-weekly-table-scroll {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ll-weekly-table {
+  width: 100%;
+  font-size: 0.82rem;
+  table-layout: fixed;
+}
+
+.ll-weekly-table th,
+.ll-weekly-table td {
+  padding: 0.45rem 0.25rem;
+  text-align: center;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ll-weekly-table th:first-child,
+.ll-weekly-table .ll-weekly-subject-cell {
+  text-align: left;
+  font-weight: 600;
+  width: 9rem;
+  padding-left: 0.65rem;
+}
+
+.ll-week-col {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ll-weekly-dot-cell {
+  width: 2rem;
+}
+
+.ll-week-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  vertical-align: middle;
+  cursor: help;
+}
+
+.ll-week-dot-empty {
+  background: rgba(100, 116, 139, 0.2);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.ll-weekly-detail-wrap {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ll-weekly-detail-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.92rem;
+}
+
+.ll-weekly-detail-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+}
+
+.ll-weekly-detail-empty {
+  margin: 0;
+}
+
+.ll-weekly-subject {
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ll-weekly-subject summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+
+.ll-weekly-subject summary::-webkit-details-marker {
+  display: none;
+}
+
+.ll-weekly-subject-count {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.ll-weekly-rating-list {
+  margin: 0;
+  padding: 0 0.75rem 0.65rem;
+  list-style: none;
+}
+
+.ll-weekly-rating-list li {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: 0.5rem 0.65rem;
+  align-items: start;
+  padding: 0.45rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.ll-week-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+
+.ll-rating-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-top: 0.25rem;
+  flex-shrink: 0;
+}
+
+.ll-rating-text {
+  word-break: break-word;
+}
+
+.ll-report-wrap {
+  overflow-x: auto;
+  padding: 0.5rem 0;
+}
+
+.ll-report-wrap .report-sheet {
+  min-width: min(100%, 720px);
+}
+
+.ll-muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.ll-loading {
+  color: var(--muted);
+  font-style: italic;
+}

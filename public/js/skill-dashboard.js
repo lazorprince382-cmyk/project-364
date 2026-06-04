@@ -846,6 +846,9 @@
         window.__oceanReportsInit();
       }
     }
+    if (name === 'learner-lookup' && window.__oceanLearnerLookupInit) {
+      window.__oceanLearnerLookupInit();
+    }
     if (name === 'skill-messages' && window.__oceanLeaderMessagesInit) {
       window.__oceanLeaderMessagesInit();
     }

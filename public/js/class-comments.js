@@ -5,8 +5,9 @@
 (function () {
   const panel = document.getElementById('panel-comments');
   const skillReportsPanel = document.getElementById('panel-skill-reports');
+  const learnerLookupPanel = document.getElementById('panel-learner-lookup');
   if (!window.__oceanDashboard) return;
-  if (!panel && !skillReportsPanel) return;
+  if (!panel && !skillReportsPanel && !learnerLookupPanel) return;
 
   const ctx = window.__oceanDashboard;
   const skillList = ctx.skillOnlySubjects || [];
@@ -1072,9 +1073,11 @@
     scrollCarouselToSelected();
   }
 
-  elBody.addEventListener('input', function () {
-    elChar.textContent = elBody.value.length + ' / 300';
-  });
+  if (elBody && elChar) {
+    elBody.addEventListener('input', function () {
+      elChar.textContent = elBody.value.length + ' / 300';
+    });
+  }
 
   const mScored = document.getElementById('cc-m-scored');
   if (mScored) mScored.addEventListener('input', refreshMarksSystemOut);
@@ -1090,54 +1093,52 @@
 
   window.__oceanCommentsIsMarksSubject = isMarksSubject;
 
-  elSubject.addEventListener('change', function () {
-    updatePeriodLabel();
-    updateReadonlyUi();
-    idx = 0;
-    renderCarousel();
-    refreshSubjectRows().then(function () {
-      showLearner();
-      scrollCarouselToSelected();
+  if (elSubject && elTerm && elPeriod) {
+    elSubject.addEventListener('change', function () {
+      updatePeriodLabel();
       updateReadonlyUi();
-      emitWeeklyContext();
-      refreshQuickCommentBanks();
+      idx = 0;
+      renderCarousel();
+      refreshSubjectRows().then(function () {
+        showLearner();
+        scrollCarouselToSelected();
+        updateReadonlyUi();
+        emitWeeklyContext();
+        refreshQuickCommentBanks();
+      });
     });
-  });
-  elTerm.addEventListener('change', function () {
-    refreshTermPeriodDependent().then(function () {
-      emitWeeklyContext();
-      refreshQuickCommentBanks();
+    elTerm.addEventListener('change', function () {
+      refreshTermPeriodDependent().then(function () {
+        emitWeeklyContext();
+        refreshQuickCommentBanks();
+      });
     });
-  });
-  elPeriod.addEventListener('change', function () {
-    refreshTermPeriodDependent();
-  });
+    elPeriod.addEventListener('change', function () {
+      refreshTermPeriodDependent();
+    });
+  }
 
-  document.getElementById('cc-prev').addEventListener('click', function () {
-    moveIdx(-1);
-  });
-  document.getElementById('cc-next').addEventListener('click', function () {
-    moveIdx(1);
-  });
-
-  document.getElementById('cc-save-only').addEventListener('click', async function () {
-    await saveCombined(null);
-  });
-  document.getElementById('cc-save-next').addEventListener('click', async function () {
-    await saveCombined(1);
-  });
-  document.getElementById('cc-save-prev').addEventListener('click', async function () {
-    await saveCombined(-1);
-  });
+  const ccPrev = document.getElementById('cc-prev');
+  const ccNext = document.getElementById('cc-next');
+  const ccSaveOnly = document.getElementById('cc-save-only');
+  const ccSaveNext = document.getElementById('cc-save-next');
+  const ccSavePrev = document.getElementById('cc-save-prev');
+  if (ccPrev) ccPrev.addEventListener('click', function () { moveIdx(-1); });
+  if (ccNext) ccNext.addEventListener('click', function () { moveIdx(1); });
+  if (ccSaveOnly) ccSaveOnly.addEventListener('click', async function () { await saveCombined(null); });
+  if (ccSaveNext) ccSaveNext.addEventListener('click', async function () { await saveCombined(1); });
+  if (ccSavePrev) ccSavePrev.addEventListener('click', async function () { await saveCombined(-1); });
 
   if (elCTBody && elCTChar) {
     elCTBody.addEventListener('input', function () {
       elCTChar.textContent = elCTBody.value.length + ' / 300';
     });
   }
-  window.addEventListener('ocean-weekly-bands-updated', function () {
-    refreshQuickCommentBanks();
-  });
+  if (panel && elSubject) {
+    window.addEventListener('ocean-weekly-bands-updated', function () {
+      refreshQuickCommentBanks();
+    });
+  }
 
   function hdr(s) {
     return String(s || '')
@@ -1397,7 +1398,8 @@
     document.head.appendChild(s);
   }
 
-  document.getElementById('cc-export-btn').addEventListener('click', function () {
+  const ccExportBtn = document.getElementById('cc-export-btn');
+  if (ccExportBtn) ccExportBtn.addEventListener('click', function () {
     loadSheetJs(function () {
       const term = document.getElementById('ex-term').value;
       const period = document.getElementById('ex-period').value;
@@ -1442,7 +1444,8 @@
     });
   });
 
-  document.getElementById('cc-export-refresh').addEventListener('click', function () {
+  const ccExportRefresh = document.getElementById('cc-export-refresh');
+  if (ccExportRefresh) ccExportRefresh.addEventListener('click', function () {
     refreshExportTable();
   });
 
@@ -1601,9 +1604,12 @@
     });
   }
 
-  function applyReportTemplateCustomization(settings) {
+  function applyReportTemplateCustomization(settings, rootEl) {
     const normalized = normalizeReportSettingsLocal(settings || currentReportSettings || {});
-    const cards = document.querySelectorAll('#rp-template .baby-report-card, #rp-template .primary-report-card');
+    const root = rootEl || document.getElementById('rp-template');
+    const cards = root
+      ? root.querySelectorAll('.baby-report-card, .primary-report-card')
+      : document.querySelectorAll('#rp-template .baby-report-card, #rp-template .primary-report-card');
     cards.forEach(function (card) {
       const family = REPORT_FONT_FAMILIES[normalized.fontFamily] || '';
       card.style.fontFamily = family;
@@ -2333,13 +2339,14 @@
     refreshReportWorkflowUi();
   }
 
-  function applyReportScale(scale) {
+  function applyReportScale(scale, rootEl) {
     const s = Number(scale);
     const clamped = Number.isNaN(s) ? 1 : Math.max(0.8, Math.min(1.4, s));
-    const cards = document.querySelectorAll('#rp-template .baby-report-card, #rp-template .primary-report-card');
+    const sheet = rootEl || document.getElementById('rp-template');
+    const cards = sheet
+      ? sheet.querySelectorAll('.baby-report-card, .primary-report-card')
+      : document.querySelectorAll('#rp-template .baby-report-card, #rp-template .primary-report-card');
     if (!cards.length) return;
-
-    const sheet = document.getElementById('rp-template');
     const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches;
     let fitScale = 1;
     if (isMobile && sheet) {
@@ -3453,10 +3460,110 @@
       });
   };
 
+  async function renderLearnerReportForLookup(opts) {
+    const student = opts && opts.student;
+    const targetEl = opts && opts.targetEl;
+    if (!student || !targetEl) return;
+    const classLevel = String(opts.classLevel || student.class_level || '').trim();
+    const stream = opts.stream != null ? String(opts.stream).trim() : String(student.stream || '').trim();
+    const term = String(opts.term || '1');
+    const period = String(opts.period || 'mid');
+    const year = String(opts.year || new Date().getFullYear());
+    const backup = {
+      classLevel: ctx.classLevel,
+      stream: ctx.stream,
+      displayTitle: ctx.displayTitle,
+      streamLabels: ctx.streamLabels,
+      subjects: ctx.subjects,
+      isPrimary: ctx.isPrimary,
+      skillOnlySubjects: ctx.skillOnlySubjects,
+    };
+    ctx.classLevel = classLevel;
+    ctx.stream = stream;
+    ctx.displayTitle = opts.displayTitle || ctx.displayTitle || classLevel;
+    ctx.streamLabels = opts.streamLabels || ctx.streamLabels || {};
+    ctx.subjects = (opts.subjects || []).slice();
+    ctx.isPrimary = !!opts.isPrimary;
+    ctx.skillOnlySubjects = opts.skillOnlySubjects || ctx.skillOnlySubjects || [];
+
+    function urlWithYear(base, path, extra) {
+      const u = new URL(path, window.location.origin);
+      u.searchParams.set('classLevel', classLevel);
+      if (stream) u.searchParams.set('stream', stream);
+      Object.keys(extra || {}).forEach(function (k) {
+        u.searchParams.set(k, extra[k]);
+      });
+      u.searchParams.set('year', year);
+      return u.toString();
+    }
+
+    try {
+      const [comRes, marRes, headRes, ctRes, settingRes] = await Promise.all([
+        fetch(urlWithYear(null, '/api/comments', { term: term, period: period })),
+        fetch(urlWithYear(null, '/api/marks', { term: term, period: period })),
+        fetch(urlWithYear(null, '/api/head-comments', { term: term, period: period })),
+        fetch(urlWithYear(null, '/api/class-teacher-comments', { term: term, period: period })),
+        fetch(
+          (function () {
+            const u = new URL('/api/report-settings', window.location.origin);
+            u.searchParams.set('classLevel', classLevel);
+            if (stream) u.searchParams.set('stream', stream);
+            return u.toString();
+          })()
+        ),
+      ]);
+      const allComments = comRes.ok ? await comRes.json() : [];
+      const allMarks = marRes.ok ? await marRes.json() : [];
+      let allHead = headRes.ok ? await headRes.json().catch(function () { return []; }) : [];
+      let allClassTeacher = ctRes.ok ? await ctRes.json().catch(function () { return []; }) : [];
+      if (!Array.isArray(allHead)) allHead = [];
+      if (!Array.isArray(allClassTeacher)) allClassTeacher = [];
+      let reportSettings = normalizeReportSettingsLocal({});
+      if (settingRes.ok) {
+        const sj = await settingRes.json().catch(function () { return {}; });
+        reportSettings = normalizeReportSettingsLocal(sj);
+      }
+      const fc = filterTermPeriod(allComments, term, period);
+      const fm = filterTermPeriod(allMarks, term, period);
+      const fh = filterTermPeriod(allHead, term, period);
+      const fct = filterTermPeriod(allClassTeacher, term, period);
+      const subjectCols = subjectColumnsFromBoth(fc, fm);
+      const byC = {};
+      const byM = {};
+      const headBy = {};
+      const ctBy = {};
+      fc.forEach(function (r) { byC[r.student_id + '\t' + r.subject] = r.body; });
+      fm.forEach(function (r) { byM[r.student_id + '\t' + r.subject] = r; });
+      fh.forEach(function (r) { headBy[r.student_id] = r.body || ''; });
+      fct.forEach(function (r) { ctBy[r.student_id] = r.body || ''; });
+      const nextTermBegins = period === 'end' ? reportSettings.nextTermBegins || '' : '';
+      targetEl.innerHTML = buildStudentReportHtml(
+        student,
+        subjectCols,
+        byC,
+        byM,
+        ctBy,
+        headBy,
+        term,
+        period,
+        nextTermBegins,
+        year
+      );
+      const fontScale = reportSettings.fontScale != null ? Number(reportSettings.fontScale) : 1;
+      applyReportScale(fontScale, targetEl);
+      applyReportTemplateCustomization(reportSettings, targetEl);
+    } catch (_) {
+      targetEl.innerHTML = '<p class="ll-muted">Could not load report preview.</p>';
+    } finally {
+      Object.assign(ctx, backup);
+    }
+  }
+
   window.OceanClassReports = {
     init: window.__oceanReportsInit,
     refresh: refreshReportTemplate,
     populateYears: populateReportYearSelect,
+    renderLearner: renderLearnerReportForLookup,
   };
 
   let reportScaleResizeTimer = null;

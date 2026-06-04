@@ -1458,6 +1458,26 @@ app.get(
   })
 );
 
+app.get(
+  '/api/students/search',
+  requireStaffRoles(STAFF_ACCOUNT_ROLES),
+  asyncRoute(async (req, res) => {
+    const q = String(req.query.q || '').trim();
+    if (q.length < 2) return res.json([]);
+    const limit = Math.min(40, Math.max(5, Number(req.query.limit) || 20));
+    const like = '%' + q + '%';
+    const { rows } = await pool.query(
+      `SELECT id, full_name, reg_no, class_level, stream, passport_path
+       FROM students
+       WHERE full_name ILIKE $1 OR reg_no ILIKE $1
+       ORDER BY full_name ASC
+       LIMIT $2`,
+      [like, limit]
+    );
+    res.json(rows);
+  })
+);
+
 app.post(
   '/api/students',
   uploadStudent.single('passport'),

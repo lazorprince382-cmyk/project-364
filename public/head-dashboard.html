@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/css/clear-ocean-ui.css?v=20260531a" />
     <link rel="stylesheet" href="/css/class-page1.css?v=20260529a" />
     <link rel="stylesheet" href="/css/image-crop-modal.css?v=20260604a" />
+    <link rel="stylesheet" href="/css/learner-lookup.css?v=20260604c" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
   </head>
   <body class="app-dash app-head">
@@ -901,7 +902,33 @@
     <script src="/js/subjects.js?v=20260529a"></script>
     <script src="/js/message-notify.js?v=20260529a"></script>
     <script src="/js/welcome-banner.js?v=20260531f"></script>
-    <script src="/js/head-dashboard.js?v=20260531d"></script>
+    <script src="/js/learner-lookup.js?v=20260604c"></script>
+    <script>
+      window.__oceanDashboard = window.__oceanDashboard || {
+        classLevel: 'baby',
+        stream: '',
+        displayTitle: 'Baby Class',
+        streamPart: '',
+        streamLabels: { waves: 'Waves', pearls: 'Pearls', dolphins: 'Dolphins', whales: 'Whales' },
+        titles: {
+          daycare: 'Day Care',
+          baby: 'Baby Class',
+          middle: 'Middle Class',
+          top: 'Top Class',
+          primary1: 'Primary One',
+          primary2: 'Primary Two',
+        },
+        isPrimary: false,
+        subjects: [],
+        skillOnlySubjects: window.OCEAN_SKILL_SUBJECTS || [],
+        flash: function () {},
+        switchToTab: function (name) {
+          if (typeof window.__oceanHeadSwitchTab === 'function') window.__oceanHeadSwitchTab(name);
+        },
+      };
+    </script>
+    <script src="/js/class-comments.js?v=20260604g"></script>
+    <script src="/js/head-dashboard.js?v=20260604a"></script>
     <script src="/js/head-learner-comments.js?v=20260529a"></script>
     <script src="/js/head-comment-review.js?v=20260529a"></script>
     <script src="/js/dm-voice.js?v=20260601g"></script>

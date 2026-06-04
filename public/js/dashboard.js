@@ -1124,6 +1124,7 @@
       if (window.__oceanCommentsStartPolling) window.__oceanCommentsStartPolling();
     }
     if (name === 'reports' && window.__oceanReportsInit) window.__oceanReportsInit();
+    if (name === 'learner-lookup' && window.__oceanLearnerLookupInit) window.__oceanLearnerLookupInit();
     if (name === 'export' && window.__oceanExportInit) window.__oceanExportInit();
     if (name === 'settings' && window.OceanSettings) {
       window.OceanSettings.syncProfileBar();
