@@ -51,6 +51,17 @@
     return;
   }
 
+  function hideClassDashboardMessages() {
+    document.querySelectorAll('[data-tab="messages"]').forEach(function (el) {
+      el.style.display = 'none';
+    });
+    const msgPanel = document.getElementById('panel-messages');
+    if (msgPanel) msgPanel.remove();
+    const qaMsg = document.getElementById('qa-messages');
+    if (qaMsg) qaMsg.style.display = 'none';
+    window.__oceanClassMessagesDisabled = true;
+  }
+
   if (auth) {
     if (
       !auth.validateSessionFreshness({
@@ -87,11 +98,10 @@
         window.location.href = auth.classWorkspaceSignInHref(next, 'class');
         return;
       }
-      document.querySelectorAll('[data-tab="messages"]').forEach(function (el) {
-        el.style.display = 'none';
-      });
-      const msgPanel = document.getElementById('panel-messages');
-      if (msgPanel) msgPanel.remove();
+      hideClassDashboardMessages();
+    }
+    if (staff.role === 'skill_teacher') {
+      hideClassDashboardMessages();
     }
     auth.startIdleWatch({
       loginViaClasses: true,
@@ -1087,6 +1097,7 @@
   }
 
   function switchToTab(name) {
+    if (name === 'messages' && window.__oceanClassMessagesDisabled) return;
     if (window.__oceanLeaderMessagesPause) window.__oceanLeaderMessagesPause();
     if (window.__oceanCommentsPause) window.__oceanCommentsPause();
     document.querySelectorAll('.tab').forEach(function (t) {
