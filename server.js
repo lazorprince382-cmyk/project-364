@@ -306,8 +306,8 @@ function resolveReportActor(req, fallback = 'class_teacher') {
   const s = req && req.staffSession;
   if (s && s.role) {
     const role = String(s.role);
-    if (role === 'skill_teacher' || role === 'head_teacher' || role === 'director' || role === 'ghost') {
-      return role === 'ghost' ? 'director' : role;
+    if (role === 'skill_teacher' || role === 'head_teacher' || role === 'director' || role === 'system_admin' || role === 'ghost') {
+      return role === 'system_admin' || role === 'ghost' ? 'director' : role;
     }
     return 'class_teacher';
   }
@@ -846,20 +846,21 @@ async function finalizeClassMessageRows(rows, viewerLabel) {
   }
 }
 
-const STAFF_DM_ROLES = ['director', 'head_teacher', 'class_teacher', 'skill_teacher', 'ghost'];
-const GHOST_STAFF_ROLE = 'ghost';
-const SQL_STAFF_LISTABLE = `role <> '${GHOST_STAFF_ROLE}'`;
+const STAFF_DM_ROLES = ['director', 'head_teacher', 'class_teacher', 'skill_teacher', 'system_admin'];
+const SYSTEM_ADMIN_ROLE = 'system_admin';
+const SQL_STAFF_LISTABLE = `role NOT IN ('${SYSTEM_ADMIN_ROLE}', 'ghost')`;
 
-function isGhostStaffRole(role) {
-  return String(role || '').trim() === GHOST_STAFF_ROLE;
+function isSystemAdminRole(role) {
+  const r = String(role || '').trim();
+  return r === SYSTEM_ADMIN_ROLE || r === 'ghost';
 }
 
 function staffRoleSatisfied(sessionRole, allowedRoles) {
-  if (isGhostStaffRole(sessionRole)) return true;
+  if (isSystemAdminRole(sessionRole)) return true;
   return Array.isArray(allowedRoles) && allowedRoles.includes(sessionRole);
 }
 
-function requireGhostStaff(req, res, next) {
+function requireSystemAdmin(req, res, next) {
   Promise.resolve()
     .then(async () => {
       const token = bearerToken(req);
@@ -869,7 +870,7 @@ function requireGhostStaff(req, res, next) {
         return;
       }
       const row = await loadStaffRow(payload.id);
-      if (!row || !row.active || !isGhostStaffRole(row.role)) {
+      if (!row || !row.active || !isSystemAdminRole(row.role)) {
         res.status(403).json({ error: 'System admin session required' });
         return;
       }
@@ -893,7 +894,8 @@ function staffRoleLabel(role) {
     head_teacher: 'Head teacher',
     class_teacher: 'Class teacher',
     skill_teacher: 'Skill teacher',
-    ghost: 'Staff',
+    system_admin: 'System admin',
+    ghost: 'System admin',
   };
   return map[r] || r.replace(/_/g, ' ');
 }
@@ -988,7 +990,7 @@ async function loadStaffRow(staffId) {
   return rows[0] || null;
 }
 
-const STAFF_ACCOUNT_ROLES = ['director', 'head_teacher', 'class_teacher', 'skill_teacher', 'ghost'];
+const STAFF_ACCOUNT_ROLES = ['director', 'head_teacher', 'class_teacher', 'skill_teacher', 'system_admin'];
 
 /** WhatsApp-style ticks on messages you sent: recipient delivery / seen receipts. */
 async function attachStaffDmReceiptTicks(rows, viewerStaffId) {
@@ -1202,8 +1204,8 @@ async function loadStaffGroupInboxRows(me) {
   });
 }
 
-function sessionIsGhost(req) {
-  return isGhostStaffRole(req.staffSession && req.staffSession.role);
+function sessionIsSystemAdmin(req) {
+  return isSystemAdminRole(req.staffSession && req.staffSession.role);
 }
 
 /** System admin (ghost): all staff DM pairs in the school. */
@@ -1245,7 +1247,7 @@ async function loadGhostStaffDmInboxRows() {
      ) lm ON TRUE
      WHERE sa.role <> $1 AND sb.role <> $1
      ORDER BY p.last_at DESC`,
-    [GHOST_STAFF_ROLE]
+    [SYSTEM_ADMIN_ROLE]
   );
   return rows.map((r) => {
     const previewBody =
@@ -1335,7 +1337,7 @@ function requireDirector(req, res, next) {
     .then(async () => {
       const token = bearerToken(req);
       const payload = verifyStaffSession(token);
-      if (!payload || (payload.role !== 'director' && !isGhostStaffRole(payload.role))) {
+      if (!payload || (payload.role !== 'director' && !isSystemAdminRole(payload.role))) {
         res.status(403).json({ error: 'Director session required' });
         return;
       }
@@ -1385,7 +1387,7 @@ function requireStaffRoles(roles) {
           res.status(403).json({ error: 'Authorized staff session required' });
           return;
         }
-        if (!isGhostStaffRole(req.staffSession.role) && (await isStaffSystemLocked())) {
+        if (!isSystemAdminRole(req.staffSession.role) && (await isStaffSystemLocked())) {
           res.status(503).json({
             error: 'All staff sign-ins are temporarily disabled by the system administrator.',
           });
@@ -1565,7 +1567,7 @@ app.get(
   requireStaffRoles(STAFF_DM_ROLES),
   asyncRoute(async (req, res) => {
     try {
-      const ghost = sessionIsGhost(req);
+      const ghost = sessionIsSystemAdmin(req);
       const classLevel = req.query.classLevel != null ? String(req.query.classLevel).trim() : '';
       const streamKey = normalizeClassStream(req.query.stream);
       let q = `SELECT
@@ -1862,7 +1864,7 @@ app.post(
   requireStaffRoles(STAFF_DM_ROLES),
   asyncRoute(async (req, res) => {
     try {
-      if (sessionIsGhost(req)) {
+      if (sessionIsSystemAdmin(req)) {
         return res.status(403).json({ error: 'System admin can only view this channel, not clear it.' });
       }
       const class_level =
@@ -1996,7 +1998,7 @@ app.get(
   requireStaffRoles(STAFF_DM_ROLES),
   asyncRoute(async (req, res) => {
     try {
-      if (sessionIsGhost(req)) {
+      if (sessionIsSystemAdmin(req)) {
         return res.json({ total: 0, by_peer: {}, by_group: {}, observer_mode: true });
       }
       const me = Number(req.staffSession.id);
@@ -2066,7 +2068,7 @@ app.get(
   asyncRoute(async (req, res) => {
     try {
       const me = Number(req.staffSession.id);
-      if (sessionIsGhost(req)) {
+      if (sessionIsSystemAdmin(req)) {
         const dmMapped = await loadGhostStaffDmInboxRows();
         const groupRows = await loadGhostStaffAllGroupInboxRows();
         const merged = dmMapped.concat(groupRows).sort((a, b) => {
@@ -2173,7 +2175,7 @@ app.get(
   asyncRoute(async (req, res) => {
     try {
       const me = Number(req.staffSession.id);
-      const ghostObserve = sessionIsGhost(req);
+      const ghostObserve = sessionIsSystemAdmin(req);
       const groupId = parseInt(req.query.group, 10);
       if (groupId && !Number.isNaN(groupId)) {
         if (!ghostObserve && !(await isStaffGroupMember(groupId, me))) {
@@ -2542,7 +2544,7 @@ app.post(
       const me = Number(req.staffSession.id);
       const groupId = parseInt(req.body && req.body.group_id, 10);
       if (groupId && !Number.isNaN(groupId)) {
-        if (sessionIsGhost(req)) {
+        if (sessionIsSystemAdmin(req)) {
           return res.status(403).json({ error: 'System admin can only view this group, not clear it.' });
         }
         if (!(await isStaffGroupMember(groupId, me))) {
@@ -2563,7 +2565,7 @@ app.post(
       if (other === me) return res.status(400).json({ error: 'Cannot clear a conversation with yourself' });
       const otherRow = await loadStaffRow(other);
       if (!otherRow || !otherRow.active) return res.status(404).json({ error: 'Staff member not found' });
-      if (sessionIsGhost(req)) {
+      if (sessionIsSystemAdmin(req)) {
         const { rows: ghostDm } = await pool.query(
           `SELECT 1 FROM staff_direct_messages
            WHERE (sender_staff_id = $1 AND recipient_staff_id = $2)
@@ -2656,7 +2658,7 @@ app.post(
   requireStaffRoles(STAFF_DM_ROLES),
   asyncRoute(async (req, res) => {
     try {
-      if (sessionIsGhost(req)) {
+      if (sessionIsSystemAdmin(req)) {
         return res.json({ ok: true, observer: true });
       }
       const me = Number(req.staffSession.id);
@@ -2697,7 +2699,7 @@ app.post(
   requireStaffRoles(STAFF_DM_ROLES),
   asyncRoute(async (req, res) => {
     try {
-      if (sessionIsGhost(req)) {
+      if (sessionIsSystemAdmin(req)) {
         return res.json({ ok: true, observer: true });
       }
       const me = Number(req.staffSession.id);
@@ -3478,7 +3480,7 @@ app.post(
       if (!rows.length) return res.status(401).json({ error: 'Invalid credentials' });
       const row = rows[0];
       if (!row.active) return res.status(401).json({ error: 'Account disabled' });
-      if (!isGhostStaffRole(row.role) && (await isStaffSystemLocked())) {
+      if (!isSystemAdminRole(row.role) && (await isStaffSystemLocked())) {
         return res.status(503).json({
           error: 'All staff sign-ins are temporarily disabled. Contact your school administrator.',
         });
@@ -3557,7 +3559,7 @@ app.get(
       );
       if (!rows.length || !rows[0].active) return res.status(401).json({ error: 'Unauthorized' });
       const row = rows[0];
-      if (!isGhostStaffRole(row.role) && (await isStaffSystemLocked())) {
+      if (!isSystemAdminRole(row.role) && (await isStaffSystemLocked())) {
         return res.status(503).json({
           error: 'All staff sign-ins are temporarily disabled by the system administrator.',
         });
@@ -3640,7 +3642,7 @@ app.get(
     }
     try {
       const as = String(req.query.as || 'head_teacher').trim();
-      const allowed = ['director', 'head_teacher', 'class_teacher', 'skill_teacher', 'ghost'];
+      const allowed = ['director', 'head_teacher', 'class_teacher', 'skill_teacher', 'system_admin'];
       const role = allowed.includes(as) ? as : 'head_teacher';
       let { rows } = await pool.query(
         `SELECT id, email, display_name, role, class_level, stream, active, avatar_url
@@ -3787,42 +3789,47 @@ app.get(
   })
 );
 
-app.get(
-  '/api/ghost/staff-lock',
-  requireGhostStaff,
-  asyncRoute(async (_req, res) => {
-    try {
-      res.json(await getStaffSystemLockState());
-    } catch (err) {
-      if (staffAccountsUnavailable(err)) {
-        return res.status(503).json({
-          error: 'Staff accounts need database update. Run: npm run db:init (DATABASE_URL required).',
-        });
+function registerSystemAdminStaffLockRoutes(pathPrefix) {
+  app.get(
+    pathPrefix + '/staff-lock',
+    requireSystemAdmin,
+    asyncRoute(async (_req, res) => {
+      try {
+        res.json(await getStaffSystemLockState());
+      } catch (err) {
+        if (staffAccountsUnavailable(err)) {
+          return res.status(503).json({
+            error: 'Staff accounts need database update. Run: npm run db:init (DATABASE_URL required).',
+          });
+        }
+        throw err;
       }
-      throw err;
-    }
-  })
-);
+    })
+  );
 
-app.put(
-  '/api/ghost/staff-lock',
-  requireGhostStaff,
-  asyncRoute(async (req, res) => {
-    try {
-      const locked = !!(req.body && req.body.locked);
-      const actorId = req.staffSession && req.staffSession.id ? Number(req.staffSession.id) : null;
-      const state = await setStaffSystemLockState(locked, actorId);
-      res.json({ ok: true, locked: state.locked, updatedAt: state.updatedAt });
-    } catch (err) {
-      if (staffAccountsUnavailable(err)) {
-        return res.status(503).json({
-          error: 'Staff accounts need database update. Run: npm run db:init (DATABASE_URL required).',
-        });
+  app.put(
+    pathPrefix + '/staff-lock',
+    requireSystemAdmin,
+    asyncRoute(async (req, res) => {
+      try {
+        const locked = !!(req.body && req.body.locked);
+        const actorId = req.staffSession && req.staffSession.id ? Number(req.staffSession.id) : null;
+        const state = await setStaffSystemLockState(locked, actorId);
+        res.json({ ok: true, locked: state.locked, updatedAt: state.updatedAt });
+      } catch (err) {
+        if (staffAccountsUnavailable(err)) {
+          return res.status(503).json({
+            error: 'Staff accounts need database update. Run: npm run db:init (DATABASE_URL required).',
+          });
+        }
+        throw err;
       }
-      throw err;
-    }
-  })
-);
+    })
+  );
+}
+
+registerSystemAdminStaffLockRoutes('/api/system-admin');
+registerSystemAdminStaffLockRoutes('/api/ghost');
 
 app.get(
   '/api/director/staff',
@@ -3858,7 +3865,7 @@ app.post(
         return res.status(400).json({ error: 'email, password, display_name, and role are required' });
       }
       if (!roles.includes(String(role))) return res.status(400).json({ error: 'invalid role' });
-      if (String(role) === GHOST_STAFF_ROLE) {
+      if (String(role) === SYSTEM_ADMIN_ROLE) {
         return res.status(400).json({ error: 'invalid role' });
       }
       if (String(role) === 'class_teacher' && !(class_level && String(class_level).trim())) {
@@ -3912,7 +3919,7 @@ app.patch(
       }
       const existing = await pool.query(`SELECT role FROM school_staff WHERE id = $1`, [id]);
       if (!existing.rows.length) return res.status(404).json({ error: 'Not found' });
-      if (existing.rows[0].role === GHOST_STAFF_ROLE) {
+      if (existing.rows[0].role === SYSTEM_ADMIN_ROLE) {
         return res.status(400).json({ error: 'This account cannot be changed.' });
       }
       const { rows } = await pool.query(
@@ -3950,7 +3957,7 @@ app.delete(
       );
       if (!existing.rows.length) return res.status(404).json({ error: 'Not found' });
       const target = existing.rows[0];
-      if (target.role === GHOST_STAFF_ROLE) {
+      if (target.role === SYSTEM_ADMIN_ROLE) {
         return res.status(400).json({ error: 'This account cannot be removed.' });
       }
       if (target.role === 'director' && target.active) {

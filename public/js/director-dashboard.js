@@ -141,11 +141,12 @@
     });
   }
 
-  function isGhostAdmin() {
+  function isSystemAdmin() {
     try {
       const raw = sessionStorage.getItem(STAFF_KEY);
       if (!raw) return false;
-      return JSON.parse(raw).role === 'ghost';
+      const r = JSON.parse(raw).role;
+      return r === 'system_admin' || r === 'ghost';
     } catch (_) {
       return false;
     }
@@ -154,7 +155,7 @@
   async function refreshGhostStaffLockUi() {
     const bar = $('#dir-ghost-staff-lock-bar');
     if (!bar) return;
-    if (!isGhostAdmin()) {
+    if (!isSystemAdmin()) {
       bar.hidden = true;
       return;
     }
@@ -164,7 +165,7 @@
     const statusEl = $('#dir-ghost-lock-status');
     const hintEl = $('#dir-ghost-lock-hint');
     try {
-      const res = await fetch('/api/ghost/staff-lock', { headers: { ...authHeaders() } });
+      const res = await fetch('/api/system-admin/staff-lock', { headers: { ...authHeaders() } });
       const data = res.ok ? await res.json() : null;
       const locked = !!(data && data.locked);
       bar.classList.toggle('is-locked', locked);
@@ -173,7 +174,7 @@
       if (hintEl) {
         hintEl.textContent = locked
           ? 'Staff sign-ins are locked. Teachers and directors cannot sign in until you allow sign-ins again.'
-          : 'Lock every dashboard account at once. Only the system admin (ghost) can still sign in until you unlock.';
+          : 'Lock every dashboard account at once. Only the System admin account can still sign in until you unlock.';
       }
       if (statusEl) {
         statusEl.textContent =
@@ -193,7 +194,7 @@
       ? 'Lock all staff sign-ins?\n\nNo one except the system admin will be able to sign in until you unlock. People already signed in will be blocked on their next action.'
       : 'Allow staff sign-ins again?\n\nAccounts that were individually disabled will stay disabled.';
     if (!confirm(msg)) return;
-    const res = await fetch('/api/ghost/staff-lock', {
+    const res = await fetch('/api/system-admin/staff-lock', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ locked: locked }),
@@ -1474,7 +1475,7 @@
     directorLogout();
     return;
   }
-  if (staff.role !== 'director' && staff.role !== 'ghost') {
+  if (staff.role !== 'director' && staff.role !== 'system_admin' && staff.role !== 'ghost') {
     alert('This page is for directors only.');
     directorLogout();
     return;
@@ -1512,7 +1513,7 @@
       setGhostStaffLock(false);
     });
   }
-  if (isGhostAdmin()) refreshGhostStaffLockUi();
+  if (isSystemAdmin()) refreshGhostStaffLockUi();
   loadSchoolReportingContext().then((ctx) => {
     if (ctx) {
       if ($('#filter-term')) $('#filter-term').value = String(ctx.term || 1);

@@ -86,7 +86,7 @@
 
   function sessionMatchesDashboard(st) {
     if (!st || !st.role) return false;
-    if (String(st.role) === 'ghost') return true;
+    if (String(st.role) === 'system_admin' || String(st.role) === 'ghost') return true;
     const want = expectedDashboardRole();
     if (want) return st.role === want;
     const ok = ['director', 'head_teacher', 'class_teacher', 'skill_teacher'];
@@ -95,18 +95,22 @@
 
   function isGhostObserverMode() {
     const auth = window.OceanStaffAuth;
+    if (auth && typeof auth.isSystemAdminStaff === 'function') {
+      return auth.isSystemAdminStaff(currentStaff());
+    }
     if (auth && typeof auth.isGhostStaff === 'function') {
       return auth.isGhostStaff(currentStaff());
     }
     const st = currentStaff();
-    return !!(st && String(st.role) === 'ghost');
+    const r = st && String(st.role);
+    return r === 'system_admin' || r === 'ghost';
   }
 
   function isObservingStaffChat() {
     return isGhostObserverMode() && activeObservePeerId != null;
   }
 
-  /** Read-only observer UI is for system admin (ghost) only. */
+  /** Read-only observer UI is for System admin only. */
   function isReadOnlyMessageView() {
     if (!isGhostObserverMode()) return false;
     return isObservingStaffChat() || !!activeClassChannel || !!activeGroupId;

@@ -212,14 +212,21 @@
     return false;
   }
 
+  function isSystemAdminStaff(staff) {
+    const r = staff && staff.role;
+    return r === 'system_admin' || r === 'ghost';
+  }
+
   function isGhostStaff(staff) {
-    return !!(staff && staff.role === 'ghost');
+    return isSystemAdminStaff(staff);
   }
 
   function roleAllowed(staff, roles) {
     if (!staff || !roles || !roles.length) return false;
-    if (isGhostStaff(staff)) return true;
-    return roles.indexOf(staff.role) >= 0;
+    if (isSystemAdminStaff(staff)) return true;
+    const r = staff.role;
+    if (r === 'ghost' && roles.indexOf('system_admin') >= 0) return true;
+    return roles.indexOf(r) >= 0;
   }
 
   function isDirectorStaff(staff) {
@@ -231,7 +238,7 @@
   }
 
   function isLeadershipStaff(staff) {
-    if (isGhostStaff(staff)) return false;
+    if (isSystemAdminStaff(staff)) return false;
     return isDirectorStaff(staff) || isHeadTeacherStaff(staff);
   }
 
@@ -359,7 +366,7 @@
   function homeForStaff(staff, nextUrl) {
     if (nextUrl && isSafeNext(nextUrl)) return nextUrl;
     const role = staff && staff.role;
-    if (role === 'ghost' || role === 'director') return '/director-dashboard.html';
+    if (role === 'system_admin' || role === 'ghost' || role === 'director') return '/director-dashboard.html';
     if (role === 'head_teacher') return '/head-dashboard.html';
     if (role === 'class_teacher') return classDashboardUrl(staff);
     if (role === 'skill_teacher') return skillDashboardUrl(staff);
@@ -367,7 +374,7 @@
   }
 
   function roleLoginPath(role) {
-    if (role === 'ghost' || role === 'director') return '/admin.html';
+    if (role === 'system_admin' || role === 'ghost' || role === 'director') return '/admin.html';
     if (role === 'head_teacher') return '/login-head.html';
     if (role === 'class_teacher') return '/login-class.html';
     if (role === 'skill_teacher') return '/login-skill.html';
@@ -577,6 +584,7 @@
     consumeDirectorClassBrowse: consumeDirectorClassBrowse,
     clearDirectorClassBrowse: clearDirectorClassBrowse,
     enforceDirectorClassBrowseEntry: enforceDirectorClassBrowseEntry,
+    isSystemAdminStaff: isSystemAdminStaff,
     isGhostStaff: isGhostStaff,
     roleAllowed: roleAllowed,
     isDirectorStaff: isDirectorStaff,

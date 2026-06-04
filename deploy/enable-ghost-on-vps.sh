@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Create or refresh the hidden ghost (system admin) account on the VPS.
+# Create or refresh the hidden System admin account on the VPS.
 # Run ON the VPS as root:
 #   cd /var/www/ocean-school && bash deploy/enable-ghost-on-vps.sh
 #
@@ -15,10 +15,10 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-if grep -q '^GHOST_STAFF_PASSWORD=' .env 2>/dev/null; then
-  echo "==> GHOST_STAFF_PASSWORD already set in .env"
+if grep -qE '^(SYSTEM_ADMIN_STAFF_PASSWORD|GHOST_STAFF_PASSWORD)=' .env 2>/dev/null; then
+  echo "==> System admin password already set in .env"
 else
-  echo "==> Add ghost settings to .env (password MUST be quoted if it contains #)"
+  echo "==> Add System admin settings to .env (password MUST be quoted if it contains #)"
   echo ""
   read -r -p "Ghost email [tomdaniel382@gmail.com]: " GHOST_EMAIL
   GHOST_EMAIL="${GHOST_EMAIL:-tomdaniel382@gmail.com}"
@@ -35,10 +35,10 @@ else
     echo "GHOST_STAFF_PASSWORD=\"${GHOST_PASS}\""
     echo "GHOST_STAFF_NAME=System Admin"
   } >> .env
-  echo "==> Appended ghost vars to .env"
+  echo "==> Appended System admin vars to .env"
 fi
 
-echo "==> Seeding / updating ghost account in database..."
+echo "==> Seeding / updating System admin account in database..."
 npm run db:init
 
 echo "==> Restarting app..."
@@ -49,4 +49,4 @@ echo ""
 echo "Done. Sign in at:"
 echo "  http://$(hostname -I 2>/dev/null | awk '{print $1}')/admin.html"
 echo "  or open a class on /classes.html with the ghost email + password."
-echo "Use the exact password from GHOST_STAFF_PASSWORD in .env (quotes not part of password)."
+echo "Use the exact password from SYSTEM_ADMIN_STAFF_PASSWORD in .env (quotes not part of password)."

@@ -13,19 +13,19 @@
     class: {
       title: 'Sign in to open this class',
       subtitle: 'Use your school email and password to continue.',
-      roles: ['class_teacher', 'head_teacher', 'director', 'ghost'],
+      roles: ['class_teacher', 'head_teacher', 'director', 'system_admin'],
       wrongRoleError: 'This sign-in is not for your account type.',
     },
     skill: {
       title: 'Sign in to open this subject',
       subtitle: 'Use your school email and password to continue.',
-      roles: ['skill_teacher', 'head_teacher', 'director', 'ghost'],
+      roles: ['skill_teacher', 'head_teacher', 'director', 'system_admin'],
       wrongRoleError: 'This sign-in is not for your account type.',
     },
     head: {
       title: 'Head teacher sign in',
       subtitle: 'Use your school email and password to continue.',
-      roles: ['head_teacher', 'director', 'ghost'],
+      roles: ['head_teacher', 'director', 'system_admin'],
       wrongRoleError: 'This sign-in is not for your account type.',
       kind: 'head',
     },
@@ -107,7 +107,10 @@
   }
 
   function goAfterAuth(staff, opts) {
-    if (opts.kind === 'head' && (staff.role === 'director' || staff.role === 'ghost')) {
+    if (
+      opts.kind === 'head' &&
+      (staff.role === 'director' || staff.role === 'system_admin' || staff.role === 'ghost')
+    ) {
       window.location.href = '/director-dashboard.html';
       return true;
     }

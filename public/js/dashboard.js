@@ -69,13 +69,17 @@
         '/classes.html?signin=class&next=' + encodeURIComponent(next);
       return;
     }
-    if (['class_teacher', 'head_teacher', 'director', 'ghost'].indexOf(staff.role) < 0) {
+    if (['class_teacher', 'head_teacher', 'director', 'system_admin'].indexOf(staff.role) < 0) {
       window.location.href =
         '/classes.html?signin=class&next=' + encodeURIComponent(window.location.pathname + window.location.search);
       return;
     }
     if (!auth.assertClassScope(staff, classLevel, stream)) return;
-    if ((staff.role === 'director' || staff.role === 'head_teacher') && staff.role !== 'ghost') {
+    if (
+      (staff.role === 'director' || staff.role === 'head_teacher') &&
+      staff.role !== 'system_admin' &&
+      staff.role !== 'ghost'
+    ) {
       if (!auth.consumeClassWorkspaceEntry()) {
         const next = window.location.pathname + window.location.search;
         window.location.href = auth.classWorkspaceSignInHref(next, 'class');

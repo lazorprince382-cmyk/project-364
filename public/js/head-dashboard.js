@@ -1318,7 +1318,12 @@
       auth.redirectToClassesSignIn('head', '/head-dashboard.html');
       return;
     }
-    if (staff.role !== 'head_teacher' && staff.role !== 'director' && staff.role !== 'ghost') {
+    if (
+      staff.role !== 'head_teacher' &&
+      staff.role !== 'director' &&
+      staff.role !== 'system_admin' &&
+      staff.role !== 'ghost'
+    ) {
       auth.redirectToClassesSignIn('head', '/head-dashboard.html');
       return;
     }

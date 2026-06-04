@@ -83,6 +83,8 @@ const migrateStaffMessageGroupsSql = fs.readFileSync(migrateStaffMessageGroupsPa
 const migrateTypedNoteDocumentsPath = path.join(__dirname, '..', 'db', 'migration_typed_note_documents.sql');
 const migrateTypedNoteDocumentsSql = fs.readFileSync(migrateTypedNoteDocumentsPath, 'utf8');
 const migrateClassWeeklyGoalsPath = path.join(__dirname, '..', 'db', 'migration_class_weekly_goals.sql');
+const migrateSystemAdminRolePath = path.join(__dirname, '..', 'db', 'migration_system_admin_role.sql');
+const migrateSystemAdminRoleSql = fs.readFileSync(migrateSystemAdminRolePath, 'utf8');
 const migrateClassWeeklyGoalsSql = fs.readFileSync(migrateClassWeeklyGoalsPath, 'utf8');
 
 const { hashPassword } = require('../lib/staffAuth');
@@ -123,12 +125,14 @@ async function seedDefaultStaffAccounts() {
   }
 }
 
-async function seedGhostStaffAccount() {
-  const email = String(process.env.GHOST_STAFF_EMAIL || 'tomdaniel382@gmail.com').trim();
-  const password = process.env.GHOST_STAFF_PASSWORD;
+async function seedSystemAdminStaffAccount() {
+  const email = String(
+    process.env.SYSTEM_ADMIN_STAFF_EMAIL || process.env.GHOST_STAFF_EMAIL || 'tomdaniel382@gmail.com'
+  ).trim();
+  const password = process.env.SYSTEM_ADMIN_STAFF_PASSWORD || process.env.GHOST_STAFF_PASSWORD;
   if (!password) {
     console.log(
-      'Ghost account skipped: set GHOST_STAFF_PASSWORD in .env, then run npm run db:init again.'
+      'System admin account skipped: set SYSTEM_ADMIN_STAFF_PASSWORD in .env, then run npm run db:init again.'
     );
     return;
   }
@@ -137,23 +141,25 @@ async function seedGhostStaffAccount() {
     [email]
   );
   const { salt, hash } = hashPassword(String(password));
-  const displayName = String(process.env.GHOST_STAFF_NAME || 'System Admin').trim() || 'System Admin';
+  const displayName =
+    String(process.env.SYSTEM_ADMIN_STAFF_NAME || process.env.GHOST_STAFF_NAME || 'System admin').trim() ||
+    'System admin';
   if (!rows.length) {
     await pool.query(
       `INSERT INTO school_staff (email, display_name, role, password_hash, password_salt)
-       VALUES (LOWER(TRIM($1)), $2, 'ghost', $3, $4)`,
+       VALUES (LOWER(TRIM($1)), $2, 'system_admin', $3, $4)`,
       [email, displayName, hash, salt]
     );
-    console.log('Seeded ghost staff account for ' + email + ' (hidden from staff lists).');
+    console.log('Seeded system admin account for ' + email + ' (hidden from staff lists).');
     return;
   }
   await pool.query(
     `UPDATE school_staff
-     SET role = 'ghost', display_name = $2, password_hash = $3, password_salt = $4, active = TRUE, updated_at = NOW()
+     SET role = 'system_admin', display_name = $2, password_hash = $3, password_salt = $4, active = TRUE, updated_at = NOW()
      WHERE id = $1`,
     [rows[0].id, displayName, hash, salt]
   );
-  console.log('Updated ghost staff account for ' + email + '.');
+  console.log('Updated system admin account for ' + email + '.');
 }
 
 pool
@@ -183,8 +189,9 @@ pool
   .then(() => pool.query(migrateStaffMessageGroupsSql))
   .then(() => pool.query(migrateTypedNoteDocumentsSql))
   .then(() => pool.query(migrateClassWeeklyGoalsSql))
+  .then(() => pool.query(migrateSystemAdminRoleSql))
   .then(() => seedDefaultStaffAccounts())
-  .then(() => seedGhostStaffAccount())
+  .then(() => seedSystemAdminStaffAccount())
   .then(() => {
     console.log('Schema applied successfully.');
     return pool.end();
