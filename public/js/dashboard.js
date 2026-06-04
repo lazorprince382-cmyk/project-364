@@ -903,6 +903,27 @@
     if (sidebarWeek && week) sidebarWeek.value = String(week);
   }
 
+  /** Keep Weekly tab dropdowns aligned when the sidebar widget changes (Comments / Register / Learners). */
+  function syncWeeklyPanelFiltersFromSidebar(subject, week) {
+    const wkSub = document.getElementById('wk-subject');
+    const wkWeek = document.getElementById('wk-week');
+    if (wkSub && subject) wkSub.value = subject;
+    if (wkWeek && week != null) wkWeek.value = String(week);
+  }
+
+  function readWeeklyProgressFilters() {
+    const subEl = document.getElementById('class-progress-subject');
+    const weekEl = document.getElementById('class-progress-week');
+    const wkSubEl = document.getElementById('wk-subject');
+    const wkWeekEl = document.getElementById('wk-week');
+    const wkTermEl = document.getElementById('wk-term');
+    const subject =
+      (subEl && subEl.value) || (wkSubEl && wkSubEl.value) || subjects[0] || '';
+    const week = Number((weekEl && weekEl.value) || (wkWeekEl && wkWeekEl.value) || 1);
+    const term = Number((wkTermEl && wkTermEl.value) || 1);
+    return { subject: subject, week: week, term: term };
+  }
+
   async function paintWeeklyProgressChart(pieId, legendId, metaId, subject, term, week) {
     const pieEl = document.getElementById(pieId);
     const legendEl = document.getElementById(legendId);
@@ -1027,9 +1048,6 @@
   async function renderClassWeeklyInProgressCard() {
     const subEl = document.getElementById('class-progress-subject');
     const weekEl = document.getElementById('class-progress-week');
-    const wkSubEl = document.getElementById('wk-subject');
-    const wkWeekEl = document.getElementById('wk-week');
-    const wkTermEl = document.getElementById('wk-term');
     if (subEl && !subEl.options.length) {
       subjects.forEach(function (s) {
         const o = document.createElement('option');
@@ -1046,10 +1064,8 @@
         weekEl.appendChild(o);
       }
     }
-    const subject = (wkSubEl && wkSubEl.value) || (subEl && subEl.value) || subjects[0] || '';
-    const week = Number((wkWeekEl && wkWeekEl.value) || (weekEl && weekEl.value) || 1);
-    const term = Number((wkTermEl && wkTermEl.value) || 1);
-    await renderWeeklyProgressCharts(subject, term, week);
+    const filters = readWeeklyProgressFilters();
+    await renderWeeklyProgressCharts(filters.subject, filters.term, filters.week);
   }
 
   function switchToTab(name) {
@@ -1719,10 +1735,12 @@
     if (subEl && d.subject) subEl.value = d.subject;
     renderClassWeeklyInProgressCard();
   });
-  ['class-progress-subject', 'class-progress-week', 'wk-term'].forEach(function (id) {
+  ['class-progress-subject', 'class-progress-week'].forEach(function (id) {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('change', function () {
+      const filters = readWeeklyProgressFilters();
+      syncWeeklyPanelFiltersFromSidebar(filters.subject, filters.week);
       renderClassWeeklyInProgressCard();
     });
   });
