@@ -1,6 +1,5 @@
 -- Rename hidden superuser role ghost → system_admin (display: System admin).
-
-UPDATE school_staff SET role = 'system_admin' WHERE role = 'ghost';
+-- Drop CHECK first so UPDATE to system_admin is allowed.
 
 DO $$
 BEGIN
@@ -10,6 +9,8 @@ BEGIN
     ALTER TABLE school_staff DROP CONSTRAINT school_staff_role_check;
   END IF;
 END $$;
+
+UPDATE school_staff SET role = 'system_admin' WHERE role = 'ghost';
 
 ALTER TABLE school_staff
   ADD CONSTRAINT school_staff_role_check
