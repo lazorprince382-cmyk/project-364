@@ -269,13 +269,7 @@
     const targetStudentId = s.id;
     let body = elClassTeacherComment.value.trim();
     if (body) {
-      const polished = await polishCommentText(body, students, targetStudentId);
-      body = polished.text;
       if (body.length > CLASS_TEACHER_MAX) body = body.slice(0, CLASS_TEACHER_MAX);
-      if (polished.changed && students[idx] && students[idx].id === targetStudentId) {
-        elClassTeacherComment.value = body;
-        if (elClassTeacherChar) elClassTeacherChar.textContent = body.length + ' / ' + CLASS_TEACHER_MAX;
-      }
     }
     const res = await fetch('/api/class-teacher-comments', {
       method: 'POST',
@@ -451,13 +445,7 @@
       const had = commentForStudent(targetStudentId);
       if (!had) return true;
     } else {
-      const polished = await polishCommentText(body, students, targetStudentId);
-      body = polished.text;
       if (body.length > MAX) body = body.slice(0, MAX);
-      if (polished.changed && students[idx] && students[idx].id === targetStudentId) {
-        elBody.value = body;
-        elChar.textContent = body.length + ' / ' + MAX;
-      }
     }
     const res = await fetch('/api/head-comments', {
       method: 'POST',

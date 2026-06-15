@@ -785,14 +785,7 @@
       alert('Comment cannot be empty. Open the class dashboard if you need to remove a row entirely.');
       return false;
     }
-    const roster = await rosterForEntry(e);
-    const polished = await polishCommentText(body, roster.length ? roster : [{ id: e.student_id, full_name: e.full_name }], e.student_id);
-    body = polished.text;
     if (body.length > MAX) body = body.slice(0, MAX);
-    if (polished.changed) {
-      elBody.value = body;
-      elChar.textContent = body.length + ' / ' + MAX;
-    }
     const res = await fetch('/api/comments/head-review', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -816,10 +809,7 @@
     delete e._missing;
     const flash = document.getElementById('flash');
     if (flash) {
-      flash.innerHTML =
-        '<div class="msg ok">' +
-        (polished.changed ? 'Saved (spelling and names checked).' : 'Saved.') +
-        '</div>';
+      flash.innerHTML = '<div class="msg ok">Saved.</div>';
       setTimeout(function () {
         flash.innerHTML = '';
       }, 3000);

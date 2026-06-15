@@ -329,12 +329,6 @@
       alert('Write a comment before saving.');
       return;
     }
-    const polished = await polishCommentText(body, students, targetStudentId);
-    body = polished.text;
-    if (polished.changed && students[idx] && students[idx].id === targetStudentId) {
-      elBody.value = body;
-      elChar.textContent = body.length + ' / 300';
-    }
     const res = await fetch('/api/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -356,10 +350,7 @@
     }
     const flash = document.getElementById('flash');
     if (flash) {
-      flash.innerHTML =
-        '<div class="msg ok">' +
-        (polished.changed ? 'Comment saved (spelling and names checked).' : 'Comment saved.') +
-        '</div>';
+      flash.innerHTML = '<div class="msg ok">Comment saved.</div>';
       setTimeout(function () {
         flash.innerHTML = '';
       }, 3000);

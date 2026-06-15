@@ -22,6 +22,7 @@
   let totalUnreadCount = 0;
   let lastThreadSnapshot = '';
   let voiceSharePending = null;
+  let activeHeaderProfile = null;
 
   function isDirectorDashboard() {
     return document.body.classList.contains('app-director');
@@ -301,6 +302,72 @@
       );
     }
     return '<span class="' + cls + ' dm-staff-avatar-initial" aria-hidden="true">' + label + '</span>';
+  }
+
+  function ensureDmProfileModal() {
+    let modal = document.getElementById('dm-profile-modal');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'dm-profile-modal';
+    modal.className = 'modal-overlay dm-profile-modal';
+    modal.setAttribute('hidden', '');
+    modal.setAttribute('aria-hidden', 'true');
+    modal.innerHTML =
+      '<div class="modal dm-profile-card" role="dialog" aria-modal="true" aria-labelledby="dm-profile-name">' +
+      '<button type="button" class="dm-profile-close" aria-label="Close">×</button>' +
+      '<div id="dm-profile-photo" class="dm-profile-photo"></div>' +
+      '<h3 id="dm-profile-name" class="dm-profile-name"></h3>' +
+      '<p id="dm-profile-role" class="dm-profile-role"></p>' +
+      '<p id="dm-profile-email" class="dm-profile-email"></p>' +
+      '</div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeDmProfile();
+    });
+    const close = modal.querySelector('.dm-profile-close');
+    if (close) close.addEventListener('click', closeDmProfile);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modal.classList.contains('open')) closeDmProfile();
+    });
+    return modal;
+  }
+
+  function openDmProfile(profile) {
+    if (!profile) return;
+    const modal = ensureDmProfileModal();
+    const name = String(profile.display_name || profile.name || 'Staff').trim() || 'Staff';
+    const role = String(profile.workspace_label || profile.role_label || profile.role || '').trim();
+    const email = String(profile.email || '').trim();
+    const avatar = String(profile.avatar_url || '').trim();
+    const photo = document.getElementById('dm-profile-photo');
+    const nameEl = document.getElementById('dm-profile-name');
+    const roleEl = document.getElementById('dm-profile-role');
+    const emailEl = document.getElementById('dm-profile-email');
+    if (photo) {
+      photo.innerHTML = avatar
+        ? '<img src="' + escapeHtml(avatar) + '" alt="" />'
+        : '<span aria-hidden="true">' + escapeHtml(name.charAt(0).toUpperCase() || '?') + '</span>';
+    }
+    if (nameEl) nameEl.textContent = name;
+    if (roleEl) {
+      roleEl.textContent = role;
+      roleEl.hidden = !role;
+    }
+    if (emailEl) {
+      emailEl.textContent = email;
+      emailEl.hidden = !email;
+    }
+    modal.removeAttribute('hidden');
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeDmProfile() {
+    const modal = document.getElementById('dm-profile-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('hidden', '');
+    modal.setAttribute('aria-hidden', 'true');
   }
 
   function hasOpenChat() {
@@ -862,6 +929,16 @@
   function appendOwnMessageFoot(div, m, isGroup) {
     const foot = document.createElement('div');
     foot.className = 'dm-bubble-foot';
+    if (m.body && !isReadOnlyMessageView()) {
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'class-msg-delete dm-msg-edit';
+      edit.textContent = 'Edit';
+      edit.addEventListener('click', async function () {
+        await editOwnMessage(m, isGroup);
+      });
+      foot.appendChild(edit);
+    }
     const del = document.createElement('button');
     del.type = 'button';
     del.className = 'class-msg-delete';
@@ -893,6 +970,46 @@
     foot.appendChild(del);
     appendReceiptTicks(foot, m.receipt_tick != null ? Number(m.receipt_tick) : 1);
     div.appendChild(foot);
+  }
+
+  async function editOwnMessage(m, isGroup) {
+    if (!m || !m.id) return;
+    const current = String(m.body || '');
+    const next = window.prompt('Edit message', current);
+    if (next == null) return;
+    const body = String(next).trim();
+    if (!body) {
+      setFeedback('Message text cannot be empty. Delete it instead.', false);
+      return;
+    }
+    if (body === current.trim()) return;
+    let resp;
+    if (activeClassChannel) {
+      const u =
+        '/api/class-messages/' +
+        encodeURIComponent(String(m.id)) +
+        '?viewerLabel=' +
+        encodeURIComponent(classMessageSenderLabel());
+      resp = await fetch(u, {
+        method: 'PUT',
+        headers: authHeaders(true),
+        body: JSON.stringify({ body: body }),
+      });
+    } else {
+      const scopeQ = isGroup ? '?scope=group' : '';
+      resp = await fetch('/api/staff-messages/' + encodeURIComponent(String(m.id)) + scopeQ, {
+        method: 'PUT',
+        headers: authHeaders(true),
+        body: JSON.stringify({ body: body }),
+      });
+    }
+    const out = await parseResponse(resp);
+    if (!out.ok) {
+      setFeedback((out.data && out.data.error) || 'Could not edit message.', false);
+      return;
+    }
+    resetThreadSnapshot();
+    await refreshChat();
   }
 
   function unreadBadgeLabel(n) {
@@ -1080,7 +1197,12 @@
     const nameEl = document.getElementById('dm-chat-peer-name');
     const roleEl = document.getElementById('dm-chat-peer-role');
     const avatarEl = document.getElementById('dm-chat-peer-avatar');
+    activeHeaderProfile = null;
     if (group) {
+      activeHeaderProfile = {
+        display_name: group.name || 'Group',
+        workspace_label: (group.member_count || 0) + ' members · Group chat',
+      };
       if (nameEl) nameEl.textContent = group.name || 'Group';
       if (roleEl) {
         roleEl.textContent = (group.member_count || 0) + ' members · Group chat';
@@ -1089,6 +1211,13 @@
         avatarEl.innerHTML = staffAvatarHtml(null, group.name, 'dm-chat-header-avatar');
       }
     } else if (peer) {
+      activeHeaderProfile = {
+        display_name: peer.display_name || 'Staff',
+        workspace_label: contactWorkspaceLine(peer),
+        role_label: peer.role_label || roleLabel(peer.role),
+        email: peer.email || '',
+        avatar_url: peer.avatar_url || '',
+      };
       if (nameEl) nameEl.textContent = peer.display_name || 'Staff';
       if (roleEl) {
         const email = peer.email ? String(peer.email).trim() : '';
@@ -1106,6 +1235,19 @@
       if (nameEl) nameEl.textContent = 'Select a chat';
       if (roleEl) roleEl.textContent = '';
       if (avatarEl) avatarEl.innerHTML = '';
+    }
+    if (avatarEl) {
+      avatarEl.classList.toggle('is-clickable', !!activeHeaderProfile);
+      avatarEl.setAttribute('aria-hidden', activeHeaderProfile ? 'false' : 'true');
+      if (activeHeaderProfile) {
+        avatarEl.setAttribute('role', 'button');
+        avatarEl.setAttribute('tabindex', '0');
+        avatarEl.setAttribute('aria-label', 'View profile photo');
+      } else {
+        avatarEl.removeAttribute('role');
+        avatarEl.removeAttribute('tabindex');
+        avatarEl.removeAttribute('aria-label');
+      }
     }
     updateClearChatButton();
     syncObserverComposeUi();
@@ -1418,10 +1560,27 @@
       if (m.id != null) row.dataset.messageId = String(m.id);
       const avatarUrl = m.is_mine ? (currentStaff() && currentStaff().avatar_url) || null : m.sender_avatar_url;
       const avatarName = m.is_mine ? myDisplayName() : m.sender_name;
+      const avatarProfile = {
+        display_name: avatarName || (m.is_mine ? 'You' : 'Staff'),
+        role_label: m.is_mine ? myRoleLabel() : m.sender_role_label || roleLabel(m.sender_role),
+        avatar_url: avatarUrl || '',
+      };
       if (!m.is_mine) {
         const av = document.createElement('div');
-        av.className = 'dm-bubble-avatar-wrap';
+        av.className = 'dm-bubble-avatar-wrap is-clickable';
+        av.setAttribute('role', 'button');
+        av.setAttribute('tabindex', '0');
+        av.setAttribute('aria-label', 'View profile photo');
         av.innerHTML = staffAvatarHtml(avatarUrl, avatarName, 'dm-bubble-avatar');
+        av.addEventListener('click', function () {
+          openDmProfile(avatarProfile);
+        });
+        av.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openDmProfile(avatarProfile);
+          }
+        });
         row.appendChild(av);
       }
       const div = document.createElement('div');
@@ -1452,8 +1611,20 @@
       row.appendChild(div);
       if (m.is_mine) {
         const avMine = document.createElement('div');
-        avMine.className = 'dm-bubble-avatar-wrap dm-bubble-avatar-own';
+        avMine.className = 'dm-bubble-avatar-wrap dm-bubble-avatar-own is-clickable';
+        avMine.setAttribute('role', 'button');
+        avMine.setAttribute('tabindex', '0');
+        avMine.setAttribute('aria-label', 'View your profile photo');
         avMine.innerHTML = staffAvatarHtml(avatarUrl, avatarName, 'dm-bubble-avatar');
+        avMine.addEventListener('click', function () {
+          openDmProfile(avatarProfile);
+        });
+        avMine.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openDmProfile(avatarProfile);
+          }
+        });
         row.appendChild(avMine);
       }
       thread.appendChild(row);
@@ -2033,6 +2204,30 @@
     });
   }
 
+  function bindProfileHeader() {
+    const avatar = document.getElementById('dm-chat-peer-avatar');
+    const peer = document.querySelector('.dm-chat-peer');
+    function openActiveProfile() {
+      if (activeHeaderProfile) openDmProfile(activeHeaderProfile);
+    }
+    [avatar, peer].forEach(function (el) {
+      if (!el || el.dataset.profileBound) return;
+      el.dataset.profileBound = '1';
+      el.addEventListener('click', openActiveProfile);
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openActiveProfile();
+        }
+      });
+    });
+    if (peer && !peer.hasAttribute('tabindex')) {
+      peer.setAttribute('tabindex', '0');
+      peer.setAttribute('role', 'button');
+      peer.setAttribute('aria-label', 'View profile photo');
+    }
+  }
+
   function pausePolling() {
     if (pollTimer) {
       clearInterval(pollTimer);
@@ -2120,6 +2315,7 @@
     bindForm();
     bindVoiceNotes();
     bindClearChat();
+    bindProfileHeader();
     const authed = await ensureStaffAuth();
     if (!authed) return;
     updateMessagesPanelIntro();

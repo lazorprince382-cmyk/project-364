@@ -857,12 +857,6 @@
     if (silent && body === String(commentForStudent(targetStudentId) || '').trim()) {
       return 'skipped';
     }
-    const polished = await polishCommentText(body, students, targetStudentId);
-    body = polished.text;
-    if (polished.changed && students[idx] && students[idx].id === targetStudentId) {
-      elBody.value = body;
-      elChar.textContent = body.length + ' / 300';
-    }
     const res = await fetch('/api/comments', {
       method: 'POST',
       headers: authHeaders(),
@@ -887,7 +881,7 @@
     fillCommentForCurrent();
     updateSummary();
     if (!silent && ctx.flash) {
-      ctx.flash(polished.changed ? 'Comment saved (spelling and names checked).' : 'Comment saved.', true);
+      ctx.flash('Comment saved.', true);
     }
     return 'saved';
   }
@@ -936,12 +930,6 @@
       if (!silent && ctx.flash) ctx.flash('Class teacher comment cleared.', true);
       return true;
     }
-    const polished = await polishCommentText(body, students, targetStudentId);
-    body = polished.text;
-    if (polished.changed && students[idx] && students[idx].id === targetStudentId) {
-      elCTBody.value = body;
-      elCTChar.textContent = body.length + ' / 300';
-    }
     const res = await fetch('/api/class-teacher-comments', {
       method: 'POST',
       headers: authHeaders(),
@@ -964,10 +952,7 @@
     fillClassTeacherForCurrent();
     updateClassTeacherSummary();
     if (!silent && ctx.flash) {
-      ctx.flash(
-        polished.changed ? 'Class teacher comment saved (spelling and names checked).' : 'Class teacher comment saved.',
-        true
-      );
+      ctx.flash('Class teacher comment saved.', true);
     }
     return true;
   }
@@ -1542,7 +1527,7 @@
   function normalizeReportSettingsLocal(raw) {
     const src = raw && typeof raw === 'object' ? raw : {};
     const scale = Number(src.fontScale);
-    const fontScale = Number.isFinite(scale) ? Math.max(0.8, Math.min(1.4, scale)) : 1;
+    const fontScale = Number.isFinite(scale) ? Math.max(0.8, Math.min(1.6, scale)) : 1;
     const fontFamily = REPORT_FONT_FAMILIES[String(src.fontFamily || '').trim()] != null ? String(src.fontFamily || '').trim() : 'default';
     return {
       nextTermBegins: src.nextTermBegins != null ? String(src.nextTermBegins) : '',
@@ -1572,12 +1557,14 @@
 
   function currentReportPreviewScale() {
     const raw =
-      rpFontRange && rpFontRange.value
+      rpFontToolbarRange && rpFontToolbarRange.value
+        ? Number(rpFontToolbarRange.value)
+        : rpFontRange && rpFontRange.value
         ? Number(rpFontRange.value)
         : currentReportSettings && currentReportSettings.fontScale != null
         ? Number(currentReportSettings.fontScale)
         : 1;
-    return Number.isFinite(raw) ? Math.max(0.8, Math.min(1.4, raw)) : 1;
+    return Number.isFinite(raw) ? Math.max(0.8, Math.min(1.6, raw)) : 1;
   }
 
   function clearReportSubjectDragClasses(scope) {
@@ -2341,7 +2328,7 @@
 
   function applyReportScale(scale, rootEl) {
     const s = Number(scale);
-    const clamped = Number.isNaN(s) ? 1 : Math.max(0.8, Math.min(1.4, s));
+    const clamped = Number.isNaN(s) ? 1 : Math.max(0.8, Math.min(1.6, s));
     const sheet = rootEl || document.getElementById('rp-template');
     const cards = sheet
       ? sheet.querySelectorAll('.baby-report-card, .primary-report-card')
@@ -2363,10 +2350,11 @@
         fitScale = Math.min(1, available / naturalWidthPx);
       }
     }
-    const finalScale = clamped * fitScale;
+    const finalScale = fitScale;
 
     let totalHeightPx = 0;
     cards.forEach(function (card) {
+      card.style.setProperty('--rp-font-scale', String(clamped));
       card.style.setProperty('--rp-scale', String(finalScale));
       card.style.transformOrigin = 'top center';
       card.style.transform = 'scale(' + finalScale + ')';
@@ -2398,7 +2386,7 @@
         const panel = document.getElementById('panel-reports');
         if (!panel || !panel.classList.contains('active')) return;
         const now = Number(scale);
-        const same = Number.isNaN(now) ? 1 : Math.max(0.8, Math.min(1.4, now));
+        const same = Number.isNaN(now) ? 1 : Math.max(0.8, Math.min(1.6, now));
         if (same !== clamped) return;
         const cardsNow = document.querySelectorAll('#rp-template .baby-report-card, #rp-template .primary-report-card');
         if (!cardsNow.length) return;
@@ -2410,8 +2398,9 @@
         if (!w || !sheet) return;
         const avail = Math.max(120, sheet.clientWidth - 20);
         const refit = Math.min(1, avail / w);
-        const next = clamped * refit;
+        const next = refit;
         cardsNow.forEach(function (card) {
+          card.style.setProperty('--rp-font-scale', String(clamped));
           card.style.transformOrigin = 'top center';
           card.style.transform = 'scale(' + next + ')';
           const parent = card.closest('.report-stack-item');
@@ -2422,6 +2411,64 @@
         });
       }, 180);
     }
+  }
+
+  async function captureA4ReportCanvas(renderNode) {
+    const props = [
+      'transform',
+      'transformOrigin',
+      'border',
+      'boxShadow',
+      'outline',
+      'width',
+      'height',
+      'minHeight',
+      'maxWidth',
+      'boxSizing',
+      'overflow',
+    ];
+    const prev = {};
+    props.forEach(function (prop) {
+      prev[prop] = renderNode.style[prop];
+    });
+    try {
+      renderNode.style.transform = 'none';
+      renderNode.style.transformOrigin = 'top left';
+      renderNode.style.border = 'none';
+      renderNode.style.boxShadow = 'none';
+      renderNode.style.outline = 'none';
+      renderNode.style.width = '210mm';
+      renderNode.style.height = '297mm';
+      renderNode.style.minHeight = '297mm';
+      renderNode.style.maxWidth = 'none';
+      renderNode.style.boxSizing = 'border-box';
+      renderNode.style.overflow = 'hidden';
+      if (document.fonts && document.fonts.ready) {
+        try {
+          await document.fonts.ready;
+        } catch (_) {}
+      }
+      const rect = renderNode.getBoundingClientRect();
+      return window.html2canvas(renderNode, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width: Math.ceil(rect.width),
+        height: Math.ceil(rect.height),
+        windowWidth: Math.ceil(Math.max(document.documentElement.clientWidth || 0, rect.width)),
+        windowHeight: Math.ceil(Math.max(document.documentElement.clientHeight || 0, rect.height)),
+      });
+    } finally {
+      props.forEach(function (prop) {
+        renderNode.style[prop] = prev[prop];
+      });
+    }
+  }
+
+  function addA4CanvasToPdf(pdf, canvas, pageIndex) {
+    if (pageIndex > 0) pdf.addPage('a4', 'portrait');
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297, undefined, 'MEDIUM');
   }
 
   async function findFallbackBabyTemplatePath() {
@@ -2518,6 +2565,8 @@
   const rpCustomizePanel = document.getElementById('rp-customize-panel');
   const rpVisualToggle = document.getElementById('rp-visual-toggle');
   const rpFontFamily = document.getElementById('rp-font-family');
+  const rpFontToolbarRange = document.getElementById('rp-font-toolbar-range');
+  const rpFontToolbarValue = document.getElementById('rp-font-toolbar-value');
   const rpFontRange = document.getElementById('rp-font-range');
   const rpFontRangeValue = document.getElementById('rp-font-range-value');
   const rpSubjectOffsetXLabel = document.getElementById('rp-subject-offset-x-label');
@@ -2560,7 +2609,14 @@
   if (rpStudent) rpStudent.addEventListener('change', refreshReportTemplate);
   if (rpPrint) {
     rpPrint.addEventListener('click', function () {
+      document.body.classList.add('is-report-printing');
+      const cleanup = function () {
+        document.body.classList.remove('is-report-printing');
+        window.removeEventListener('afterprint', cleanup);
+      };
+      window.addEventListener('afterprint', cleanup);
       window.print();
+      setTimeout(cleanup, 1200);
     });
   }
   if (rpMenuToggle && rpActionsWrap) {
@@ -2736,44 +2792,8 @@
       const node = pages[i];
       const cardNode = node.querySelector ? node.querySelector('.baby-report-card, .primary-report-card') : null;
       const renderNode = cardNode || node;
-      const prevTransform = renderNode.style.transform;
-      const prevOrigin = renderNode.style.transformOrigin;
-      const prevBorder = renderNode.style.border;
-      const prevBoxShadow = renderNode.style.boxShadow;
-      const prevOutline = renderNode.style.outline;
-      let canvas;
-      try {
-        renderNode.style.transform = 'none';
-        renderNode.style.transformOrigin = 'top left';
-        renderNode.style.border = 'none';
-        renderNode.style.boxShadow = 'none';
-        renderNode.style.outline = 'none';
-        canvas = await window.html2canvas(renderNode, { scale: 3, useCORS: true, backgroundColor: '#ffffff', logging: false });
-      } finally {
-        renderNode.style.transform = prevTransform;
-        renderNode.style.transformOrigin = prevOrigin;
-        renderNode.style.border = prevBorder;
-        renderNode.style.boxShadow = prevBoxShadow;
-        renderNode.style.outline = prevOutline;
-      }
-      const imgData = canvas.toDataURL('image/png');
-      const pageW = 210;
-      const pageH = 297;
-      const sourceRatio = canvas.width / canvas.height;
-      const pageRatio = pageW / pageH;
-      let drawW;
-      let drawH;
-      if (sourceRatio > pageRatio) {
-        drawW = pageW;
-        drawH = drawW / sourceRatio;
-      } else {
-        drawH = pageH;
-        drawW = drawH * sourceRatio;
-      }
-      const drawX = (pageW - drawW) / 2;
-      const drawY = (pageH - drawH) / 2;
-      if (i > 0) pdf.addPage('a4', 'portrait');
-      pdf.addImage(imgData, 'PNG', drawX, drawY, drawW, drawH, undefined, 'MEDIUM');
+      const canvas = await captureA4ReportCanvas(renderNode);
+      addA4CanvasToPdf(pdf, canvas, i);
     }
     pdf.save(filename);
   }
@@ -2938,49 +2958,8 @@
           ? node.querySelector('.baby-report-card, .primary-report-card')
           : null;
         const renderNode = cardNode || node;
-        const prevTransform = renderNode.style.transform;
-        const prevOrigin = renderNode.style.transformOrigin;
-        const prevBorder = renderNode.style.border;
-        const prevBoxShadow = renderNode.style.boxShadow;
-        const prevOutline = renderNode.style.outline;
-        let canvas;
-        try {
-          renderNode.style.transform = 'none';
-          renderNode.style.transformOrigin = 'top left';
-          renderNode.style.border = 'none';
-          renderNode.style.boxShadow = 'none';
-          renderNode.style.outline = 'none';
-          canvas = await window.html2canvas(renderNode, {
-            scale: 3,
-            useCORS: true,
-            backgroundColor: '#ffffff',
-            logging: false,
-          });
-        } finally {
-          renderNode.style.transform = prevTransform;
-          renderNode.style.transformOrigin = prevOrigin;
-          renderNode.style.border = prevBorder;
-          renderNode.style.boxShadow = prevBoxShadow;
-          renderNode.style.outline = prevOutline;
-        }
-        const imgData = canvas.toDataURL('image/png');
-        const pageW = 210;
-        const pageH = 297;
-        const sourceRatio = canvas.width / canvas.height;
-        const pageRatio = pageW / pageH;
-        let drawW;
-        let drawH;
-        if (sourceRatio > pageRatio) {
-          drawW = pageW;
-          drawH = drawW / sourceRatio;
-        } else {
-          drawH = pageH;
-          drawW = drawH * sourceRatio;
-        }
-        const drawX = (pageW - drawW) / 2;
-        const drawY = (pageH - drawH) / 2;
-        if (i > 0) pdf.addPage('a4', 'portrait');
-        pdf.addImage(imgData, 'PNG', drawX, drawY, drawW, drawH, undefined, 'MEDIUM');
+        const canvas = await captureA4ReportCanvas(renderNode);
+        addA4CanvasToPdf(pdf, canvas, i);
       }
       pdf.save(filename || 'report.pdf');
     } finally {
@@ -3206,6 +3185,8 @@
     if (rpFontFamily) rpFontFamily.value = normalized.fontFamily || 'default';
     if (rpFontRange) rpFontRange.value = String(normalized.fontScale != null ? normalized.fontScale : 1);
     if (rpFontRangeValue) rpFontRangeValue.textContent = reportFontScaleLabel(normalized.fontScale);
+    if (rpFontToolbarRange) rpFontToolbarRange.value = String(normalized.fontScale != null ? normalized.fontScale : 1);
+    if (rpFontToolbarValue) rpFontToolbarValue.textContent = reportFontScaleLabel(normalized.fontScale);
     syncReportOffsetInputs(normalized.layout);
     reportSubjectOrderDraft = normalized.layout.subjectOrder.slice();
     renderReportSubjectOrderEditor();
@@ -3214,9 +3195,10 @@
 
   function currentReportTemplateDraft() {
     const base = normalizeReportSettingsLocal(currentReportSettings || {});
+    const fontScaleInput = rpFontToolbarRange || rpFontRange;
     return mergeReportSettingsLocal(base, {
       fontFamily: rpFontFamily ? rpFontFamily.value : base.fontFamily,
-      fontScale: rpFontRange ? Number(rpFontRange.value || base.fontScale) : base.fontScale,
+      fontScale: fontScaleInput ? Number(fontScaleInput.value || base.fontScale) : base.fontScale,
       layout: {
         subjectOrder: reportSubjectOrderDraft.slice(),
         subjectGridOffsetX: rpSubjectOffsetX ? Number(rpSubjectOffsetX.value || 0) : base.layout.subjectGridOffsetX,
@@ -3230,6 +3212,9 @@
   function previewReportTemplateControls() {
     const draft = currentReportTemplateDraft();
     if (rpFontRangeValue) rpFontRangeValue.textContent = reportFontScaleLabel(draft.fontScale);
+    if (rpFontToolbarValue) rpFontToolbarValue.textContent = reportFontScaleLabel(draft.fontScale);
+    if (rpFontRange && rpFontRange.value !== String(draft.fontScale)) rpFontRange.value = String(draft.fontScale);
+    if (rpFontToolbarRange && rpFontToolbarRange.value !== String(draft.fontScale)) rpFontToolbarRange.value = String(draft.fontScale);
     syncReportOffsetInputs(draft.layout);
     applyReportScale(draft.fontScale);
     applyReportTemplateCustomization(draft);
@@ -3255,9 +3240,21 @@
     });
   }
 
-  [rpFontRange, rpSubjectOffsetX, rpSubjectOffsetY, rpCommentsOffsetX, rpCommentsOffsetY].forEach(function (el) {
+  [rpFontRange, rpFontToolbarRange, rpSubjectOffsetX, rpSubjectOffsetY, rpCommentsOffsetX, rpCommentsOffsetY].forEach(function (el) {
     if (!el) return;
     el.addEventListener('input', previewReportTemplateControls);
+  });
+  [rpFontRange, rpFontToolbarRange].forEach(function (el) {
+    if (!el) return;
+    el.addEventListener('change', async function () {
+      const draft = currentReportTemplateDraft();
+      try {
+        await saveReportSettingsPatch({ fontScale: draft.fontScale });
+        currentReportSettings = mergeReportSettingsLocal(currentReportSettings || {}, { fontScale: draft.fontScale });
+      } catch (_) {
+        if (ctx.flash) ctx.flash('Could not save report font size.', false);
+      }
+    });
   });
   if (rpFontFamily) rpFontFamily.addEventListener('change', previewReportTemplateControls);
 
@@ -3301,7 +3298,7 @@
   if (rpFontDec) {
     rpFontDec.addEventListener('click', async function () {
       const cur = await getCurrentReportSettings();
-      const n = Math.max(0.8, Math.min(1.4, (Number(cur.fontScale) || 1) - 0.05));
+      const n = Math.max(0.8, Math.min(1.6, (Number(cur.fontScale) || 1) - 0.05));
       await saveReportSettingsPatch({ fontScale: n });
       refreshReportTemplate();
     });
@@ -3309,7 +3306,7 @@
   if (rpFontInc) {
     rpFontInc.addEventListener('click', async function () {
       const cur = await getCurrentReportSettings();
-      const n = Math.max(0.8, Math.min(1.4, (Number(cur.fontScale) || 1) + 0.05));
+      const n = Math.max(0.8, Math.min(1.6, (Number(cur.fontScale) || 1) + 0.05));
       await saveReportSettingsPatch({ fontScale: n });
       refreshReportTemplate();
     });
@@ -3585,4 +3582,3 @@
     if (isMarksSubject()) refreshMarksSystemOut();
   });
 })();
-

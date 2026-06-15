@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Skills — THE OCEAN OF KNOWLEDGE SCHOOL</title>
     <link rel="stylesheet" href="/css/main.css" />
-    <link rel="stylesheet" href="/css/dashboard-app.css?v=20260531i" />
+    <link rel="stylesheet" href="/css/dashboard-app.css?v=20260612a" />
     <link rel="stylesheet" href="/css/clear-ocean-ui.css?v=20260531a" />
     <link rel="stylesheet" href="/css/image-crop-modal.css?v=20260604a" />
     <link rel="stylesheet" href="/css/learner-lookup.css?v=20260604c" />
@@ -614,6 +614,13 @@
             </div>
             <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem">
               <button type="button" class="btn btn-primary" id="rp-refresh">Load report</button>
+              <div class="report-font-toolbar">
+                <label for="rp-font-toolbar-range">Font size</label>
+                <button type="button" class="btn" id="rp-font-dec" title="Decrease report font">A-</button>
+                <input id="rp-font-toolbar-range" type="range" min="0.8" max="1.6" step="0.05" value="1" />
+                <span id="rp-font-toolbar-value" class="report-range-value">100%</span>
+                <button type="button" class="btn" id="rp-font-inc" title="Increase report font">A+</button>
+              </div>
               <button type="button" class="btn" id="rp-print">Print / Save PDF</button>
             </div>
             <p id="rp-empty" class="dir-muted" style="display: none">No learners in this class yet.</p>
@@ -687,7 +694,7 @@
     <script src="/js/skill-dashboard.js?v=20260604g"></script>
     <script src="/js/message-notify.js"></script>
     <script src="/js/dm-voice.js?v=20260601g"></script>
-    <script src="/js/leadership-messages.js?v=20260601g"></script>
+    <script src="/js/leadership-messages.js?v=20260612a"></script>
     <script src="/js/comment-quick-suggestions.js?v=20260604a"></script>
     <script src="/js/weekly-goal-ratings.js?v=20260604a"></script>
     <script src="/js/skill-progress.js?v=20260604a"></script>

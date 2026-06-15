@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Class dashboard — THE OCEAN OF KNOWLEDGE SCHOOL</title>
     <link rel="stylesheet" href="/css/main.css" />
-    <link rel="stylesheet" href="/css/dashboard-app.css?v=20260531i" />
+    <link rel="stylesheet" href="/css/dashboard-app.css?v=20260612a" />
     <link rel="stylesheet" href="/css/clear-ocean-ui.css?v=20260531a" />
     <link rel="stylesheet" href="/css/class-page1.css?v=20260528e" />
     <link rel="stylesheet" href="/css/image-crop-modal.css?v=20260604a" />
@@ -683,9 +683,11 @@
             <input id="rp-next-term" type="text" placeholder="e.g. 18/MAY/2026" />
           </div>
           <button type="button" class="btn" id="rp-save-next-term">Save next-term date</button>
-          <div style="display: flex; gap: 0.4rem; align-items: center">
-            <label style="margin: 0; color: var(--muted)">Font</label>
+          <div class="report-font-toolbar">
+            <label for="rp-font-toolbar-range">Font size</label>
             <button type="button" class="btn" id="rp-font-dec" title="Decrease report font">A-</button>
+            <input id="rp-font-toolbar-range" type="range" min="0.8" max="1.6" step="0.05" value="1" />
+            <span id="rp-font-toolbar-value" class="report-range-value">100%</span>
             <button type="button" class="btn" id="rp-font-inc" title="Increase report font">A+</button>
           </div>
           <button type="button" class="btn" id="rp-print">Print / Save PDF</button>
@@ -732,7 +734,7 @@
             <div class="report-customize-field report-customize-field--wide">
               <label for="rp-font-range">Font size</label>
               <div class="report-range-row">
-                <input id="rp-font-range" type="range" min="0.8" max="1.4" step="0.05" value="1" />
+                <input id="rp-font-range" type="range" min="0.8" max="1.6" step="0.05" value="1" />
                 <span id="rp-font-range-value" class="report-range-value">100%</span>
               </div>
             </div>
@@ -1064,7 +1066,7 @@
     <script src="/js/dashboard.js?v=20260604e"></script>
     <script src="/js/message-notify.js"></script>
     <script src="/js/dm-voice.js?v=20260601g"></script>
-    <script src="/js/leadership-messages.js?v=20260601g"></script>
+    <script src="/js/leadership-messages.js?v=20260612a"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="/js/comment-quick-suggestions.js?v=20260604a"></script>

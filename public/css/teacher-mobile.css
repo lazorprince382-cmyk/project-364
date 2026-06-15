@@ -1277,7 +1277,8 @@ body.app-dash.app-teacher-mobile {
 
   body.app-teacher-mobile #panel-messages.panel-messages-mobile .dm-app {
     flex: 1;
-    min-height: 0;
+    min-height: min(92vh, 620px);
+    height: min(92vh, 780px);
     display: grid;
     grid-template-columns: 1fr;
     border: none;
@@ -1352,10 +1353,11 @@ body.app-dash.app-teacher-mobile {
   }
 
   body.app-teacher-mobile #panel-messages .class-msg-bubble {
-    max-width: 88%;
-    padding: 0.55rem 0.75rem;
+    max-width: 92%;
+    padding: 0.75rem 0.9rem;
     border-radius: 14px;
-    font-size: 0.88rem;
+    font-size: 0.94rem;
+    line-height: 1.45;
     background: #fff;
     border: 1px solid var(--tm-border);
     color: var(--tm-text);

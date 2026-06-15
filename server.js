@@ -420,6 +420,10 @@ function normalizeClassStream(stream) {
   return String(stream).trim();
 }
 
+function normalizeStudentFullName(name) {
+  return String(name || '').trim().toUpperCase();
+}
+
 async function currentReportingYear() {
   const nowYear = new Date().getFullYear();
   try {
@@ -1491,8 +1495,16 @@ app.post(
       }
       return res.status(400).json({ error: 'full_name, reg_no, class_level required' });
     }
-    const nameTrim = full_name.trim();
+    const nameTrim = normalizeStudentFullName(full_name);
     const regTrim = reg_no.trim();
+    if (!nameTrim) {
+      if (req.file) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (_) {}
+      }
+      return res.status(400).json({ error: 'full_name, reg_no, class_level required' });
+    }
     if (await isRegNoTaken(regTrim, null)) {
       if (req.file) {
         try {
@@ -1537,7 +1549,7 @@ app.patch(
     if (!existing.rows.length) return res.status(404).json({ error: 'Not found' });
     const cur = existing.rows[0];
     const full_name =
-      req.body.full_name !== undefined ? String(req.body.full_name).trim() : cur.full_name;
+      req.body.full_name !== undefined ? normalizeStudentFullName(req.body.full_name) : cur.full_name;
     const reg_no = req.body.reg_no !== undefined ? String(req.body.reg_no).trim() : cur.reg_no;
     const class_level =
       req.body.class_level !== undefined ? req.body.class_level : cur.class_level;
@@ -1547,6 +1559,14 @@ app.patch(
           ? String(req.body.stream).trim()
           : null
         : cur.stream;
+    if (!full_name) {
+      if (req.file) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (_) {}
+      }
+      return res.status(400).json({ error: 'full_name is required' });
+    }
     if (await isRegNoTaken(reg_no, id)) {
       if (req.file) {
         try {
@@ -1835,6 +1855,44 @@ app.post(
         return res.status(503).json({
           error:
             'Messages database needs updating. Run: npm run db:init (DATABASE_URL required).',
+        });
+      }
+      throw err;
+    }
+  })
+);
+
+app.put(
+  '/api/class-messages/:id',
+  express.json(),
+  asyncRoute(async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const viewer = normalizeViewerLabel(req.query.viewerLabel);
+      const body = req.body && req.body.body != null ? String(req.body.body).trim() : '';
+      if (!id || Number.isNaN(id) || !viewer) {
+        return res.status(400).json({ error: 'Valid id and viewerLabel query are required' });
+      }
+      if (!body) return res.status(400).json({ error: 'Message text is required' });
+      if (body.length > 8000) return res.status(400).json({ error: 'Message too long (max 8000 characters)' });
+      const { rows } = await pool.query(
+        `SELECT id, sender_label FROM class_teacher_messages WHERE id = $1`,
+        [id]
+      );
+      if (!rows.length) return res.status(404).json({ error: 'Message not found' });
+      if (String(rows[0].sender_label || '').trim() !== viewer) {
+        return res.status(403).json({ error: 'You can only edit messages you sent' });
+      }
+      const updated = await pool.query(
+        `UPDATE class_teacher_messages SET body = $1 WHERE id = $2
+         RETURNING id, class_level, stream, skill_subject, origin_class_level, origin_stream, sender_label, body, attachment_path, attachment_original_name, created_at`,
+        [body, id]
+      );
+      res.json(updated.rows[0]);
+    } catch (err) {
+      if (err.code === '42P01' || err.code === '42703') {
+        return res.status(503).json({
+          error: 'Messages database needs updating. Run: npm run db:init (DATABASE_URL required).',
         });
       }
       throw err;
@@ -2613,6 +2671,65 @@ app.post(
         [me, other]
       );
       res.json({ ok: true, cleared: 'dm', with: other });
+    } catch (err) {
+      if (staffAccountsUnavailable(err)) {
+        return res.status(503).json({
+          error: 'Private messages need database update. Run: npm run db:init (DATABASE_URL required).',
+        });
+      }
+      throw err;
+    }
+  })
+);
+
+app.put(
+  '/api/staff-messages/:id',
+  requireStaffRoles(STAFF_DM_ROLES),
+  express.json(),
+  asyncRoute(async (req, res) => {
+    try {
+      const me = Number(req.staffSession.id);
+      const id = parseInt(req.params.id, 10);
+      const body = req.body && req.body.body != null ? String(req.body.body).trim() : '';
+      if (!id || Number.isNaN(id)) return res.status(400).json({ error: 'Valid id required' });
+      if (!body) return res.status(400).json({ error: 'Message text is required' });
+      if (body.length > 8000) return res.status(400).json({ error: 'Message too long (max 8000 characters)' });
+      const scope = String(req.query.scope || req.query.kind || 'dm').toLowerCase();
+      if (scope === 'group') {
+        const { rows } = await pool.query(
+          `SELECT m.id, m.sender_staff_id, m.group_id, m.attachment_path
+           FROM staff_group_messages m
+           WHERE m.id = $1`,
+          [id]
+        );
+        if (!rows.length) return res.status(404).json({ error: 'Message not found' });
+        if (Number(rows[0].sender_staff_id) !== me) {
+          return res.status(403).json({ error: 'You can only edit messages you sent' });
+        }
+        if (!(await isStaffGroupMember(rows[0].group_id, me))) {
+          return res.status(403).json({ error: 'You are not a member of this group' });
+        }
+        const updated = await pool.query(
+          `UPDATE staff_group_messages SET body = $1 WHERE id = $2
+           RETURNING id, group_id, sender_staff_id, body, attachment_path, attachment_original_name, created_at`,
+          [body, id]
+        );
+        return res.json(updated.rows[0]);
+      }
+      const { rows } = await pool.query(
+        `SELECT id, sender_staff_id FROM staff_direct_messages WHERE id = $1`,
+        [id]
+      );
+      if (!rows.length) return res.status(404).json({ error: 'Message not found' });
+      if (Number(rows[0].sender_staff_id) !== me) {
+        return res.status(403).json({ error: 'You can only edit messages you sent' });
+      }
+      const updated = await pool.query(
+        `UPDATE staff_direct_messages SET body = $1 WHERE id = $2
+         RETURNING id, sender_staff_id, recipient_staff_id, body, attachment_path, attachment_original_name, created_at`,
+        [body, id]
+      );
+      res.json(updated.rows[0]);
     } catch (err) {
       if (staffAccountsUnavailable(err)) {
         return res.status(503).json({
