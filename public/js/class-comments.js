@@ -1082,7 +1082,6 @@
     elSubject.addEventListener('change', function () {
       updatePeriodLabel();
       updateReadonlyUi();
-      idx = 0;
       renderCarousel();
       refreshSubjectRows().then(function () {
         showLearner();
@@ -1490,6 +1489,8 @@
       subjectGridOffsetY: 0,
       commentsOffsetX: 0,
       commentsOffsetY: 0,
+      badgeScale: 1,
+      commentGapMm: 4,
     };
   }
 
@@ -1521,7 +1522,21 @@
       subjectGridOffsetY: clampTemplateOffset(src.subjectGridOffsetY),
       commentsOffsetX: clampTemplateOffset(src.commentsOffsetX),
       commentsOffsetY: clampTemplateOffset(src.commentsOffsetY),
+      badgeScale: clampBadgeScale(src.badgeScale),
+      commentGapMm: clampCommentGapMm(src.commentGapMm),
     };
+  }
+
+  function clampBadgeScale(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 1;
+    return Math.max(0.7, Math.min(1.5, n));
+  }
+
+  function clampCommentGapMm(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 4;
+    return Math.max(0, Math.min(24, n));
   }
 
   function normalizeReportSettingsLocal(raw) {
@@ -1613,6 +1628,8 @@
           reorderSubjectCards(bodyBlock, normalized.layout.subjectOrder);
         }
       }
+      card.style.setProperty('--rp-badge-scale', String(normalized.layout.badgeScale || 1));
+      card.style.setProperty('--rp-comment-gap-mm', String(normalized.layout.commentGapMm != null ? normalized.layout.commentGapMm : 4));
       const commentsBlock = card.querySelector('.baby-bottom-comments, .primary-comments, .report-comments');
       if (commentsBlock) {
         commentsBlock.style.transformOrigin = 'top left';
@@ -1633,6 +1650,10 @@
     if (rpSubjectOffsetY) rpSubjectOffsetY.value = String(normalized.subjectGridOffsetY || 0);
     if (rpCommentsOffsetX) rpCommentsOffsetX.value = String(normalized.commentsOffsetX || 0);
     if (rpCommentsOffsetY) rpCommentsOffsetY.value = String(normalized.commentsOffsetY || 0);
+    if (rpBadgeRange) rpBadgeRange.value = String(normalized.badgeScale || 1);
+    if (rpBadgeRangeValue) rpBadgeRangeValue.textContent = reportFontScaleLabel(normalized.badgeScale || 1);
+    if (rpCommentGapRange) rpCommentGapRange.value = String(normalized.commentGapMm != null ? normalized.commentGapMm : 4);
+    if (rpCommentGapValue) rpCommentGapValue.textContent = String(normalized.commentGapMm != null ? normalized.commentGapMm : 4) + 'mm';
   }
 
   function orderedSubjectsFromGrid(gridEl) {
@@ -2070,17 +2091,17 @@
         cards +
         '</section>' +
         '<div class="baby-bottom-comments' + (period !== 'end' ? ' no-next-term' : '') + '">' +
+        '<div class="baby-comment-sign-row">' +
         '<p><strong>Class teacher\'s comment:</strong> ' +
         escapeHtml(ctBy[student.id] || '') +
         '</p>' +
-        '<div class="baby-head-row">' +
+        '<div class="baby-sign-row"><span>Signature:</span><span class="sig-line"></span></div>' +
+        '</div>' +
+        '<div class="baby-comment-sign-row baby-head-row">' +
         '<p><strong>Head caregiver\'s comment:</strong> ' +
         escapeHtml(headBy[student.id] || '') +
         '</p>' +
-        '<div class="baby-signatures-stack">' +
         '<div class="baby-sign-row"><span>Signature:</span><span class="sig-line"></span></div>' +
-        '<div class="baby-sign-row"><span>Signature:</span><span class="sig-line"></span></div>' +
-        '</div>' +
         '</div>' +
         (period === 'end'
           ? '<p class="baby-next-term">Next term begins: <span>' +
@@ -2188,6 +2209,7 @@
     const empty = document.getElementById('rp-empty');
     if (!termEl || !periodEl || !studentEl || !target || !empty || !yearEl) return;
 
+    try {
     const term = termEl.value;
     const customYear =
       rpYearCustom && rpYearCustom.style.display !== 'none' ? String(rpYearCustom.value || '').trim() : '';
@@ -2195,7 +2217,7 @@
     const period = periodEl.value;
 
     const [stuRes, comRes, marRes, headRes, ctRes] = await Promise.all([
-      fetch(studentsUrl()),
+      fetch(studentsUrl(reportYear)),
       fetch(commentsUrlForExport(term, period)),
       fetch(marksUrlForExport(term, period)),
       fetch(headCommentsUrlForExport(term, period)),
@@ -2324,6 +2346,14 @@
     applyReportScale(fontScale);
     applyReportTemplateCustomization(reportSettings);
     refreshReportWorkflowUi();
+    } catch (err) {
+      console.error('[reports] Could not load report template', err);
+      const detail = err && err.message ? ' (' + err.message + ')' : '';
+      empty.style.display = '';
+      empty.textContent = 'Could not load reports. Please refresh and try again.' + detail;
+      target.innerHTML = '';
+      if (ctx.flash) ctx.flash('Could not load reports. Please refresh and try again.' + detail, false);
+    }
   }
 
   function applyReportScale(scale, rootEl) {
@@ -2526,6 +2556,14 @@
   const rpYearCustom = document.getElementById('rp-year-custom');
   const rpPeriod = document.getElementById('rp-period');
   const rpStudent = document.getElementById('rp-student');
+  const rpBadgeRange = document.getElementById('rp-badge-range');
+  const rpBadgeRangeValue = document.getElementById('rp-badge-range-value');
+  const rpBadgeDec = document.getElementById('rp-badge-dec');
+  const rpBadgeInc = document.getElementById('rp-badge-inc');
+  const rpCommentGapRange = document.getElementById('rp-comment-gap-range');
+  const rpCommentGapValue = document.getElementById('rp-comment-gap-value');
+  const rpCommentGapDec = document.getElementById('rp-comment-gap-dec');
+  const rpCommentGapInc = document.getElementById('rp-comment-gap-inc');
   const rpValidate = document.getElementById('rp-validate');
   const rpValidateOut = document.getElementById('rp-validate-out');
   const rpApprovalState = document.getElementById('rp-approval-state');
@@ -3205,6 +3243,10 @@
         subjectGridOffsetY: rpSubjectOffsetY ? Number(rpSubjectOffsetY.value || 0) : base.layout.subjectGridOffsetY,
         commentsOffsetX: rpCommentsOffsetX ? Number(rpCommentsOffsetX.value || 0) : base.layout.commentsOffsetX,
         commentsOffsetY: rpCommentsOffsetY ? Number(rpCommentsOffsetY.value || 0) : base.layout.commentsOffsetY,
+        badgeScale: rpBadgeRange ? Number(rpBadgeRange.value || 1) : base.layout.badgeScale,
+        commentGapMm: rpCommentGapRange
+          ? Number(rpCommentGapRange.value)
+          : base.layout.commentGapMm,
       },
     });
   }
@@ -3215,6 +3257,8 @@
     if (rpFontToolbarValue) rpFontToolbarValue.textContent = reportFontScaleLabel(draft.fontScale);
     if (rpFontRange && rpFontRange.value !== String(draft.fontScale)) rpFontRange.value = String(draft.fontScale);
     if (rpFontToolbarRange && rpFontToolbarRange.value !== String(draft.fontScale)) rpFontToolbarRange.value = String(draft.fontScale);
+    if (rpBadgeRangeValue) rpBadgeRangeValue.textContent = reportFontScaleLabel(draft.layout.badgeScale || 1);
+    if (rpCommentGapValue) rpCommentGapValue.textContent = String(draft.layout.commentGapMm) + 'mm';
     syncReportOffsetInputs(draft.layout);
     applyReportScale(draft.fontScale);
     applyReportTemplateCustomization(draft);
@@ -3240,7 +3284,7 @@
     });
   }
 
-  [rpFontRange, rpFontToolbarRange, rpSubjectOffsetX, rpSubjectOffsetY, rpCommentsOffsetX, rpCommentsOffsetY].forEach(function (el) {
+  [rpFontRange, rpFontToolbarRange, rpSubjectOffsetX, rpSubjectOffsetY, rpCommentsOffsetX, rpCommentsOffsetY, rpBadgeRange, rpCommentGapRange].forEach(function (el) {
     if (!el) return;
     el.addEventListener('input', previewReportTemplateControls);
   });
@@ -3309,6 +3353,77 @@
       const n = Math.max(0.8, Math.min(1.6, (Number(cur.fontScale) || 1) + 0.05));
       await saveReportSettingsPatch({ fontScale: n });
       refreshReportTemplate();
+    });
+  }
+  async function nudgeReportBadgeScale(delta) {
+    const draft = currentReportTemplateDraft();
+    const n = clampBadgeScale((Number(draft.layout.badgeScale) || 1) + delta);
+    if (rpBadgeRange) rpBadgeRange.value = String(n);
+    previewReportTemplateControls();
+    await saveReportSettingsPatch({ layout: Object.assign({}, draft.layout, { badgeScale: n }) });
+    currentReportSettings = mergeReportSettingsLocal(currentReportSettings || {}, {
+      layout: { badgeScale: n },
+    });
+  }
+  if (rpBadgeDec) {
+    rpBadgeDec.addEventListener('click', async function () {
+      try {
+        await nudgeReportBadgeScale(-0.05);
+      } catch (_) {
+        if (ctx.flash) ctx.flash('Could not save badge size.', false);
+      }
+    });
+  }
+  if (rpBadgeInc) {
+    rpBadgeInc.addEventListener('click', async function () {
+      try {
+        await nudgeReportBadgeScale(0.05);
+      } catch (_) {
+        if (ctx.flash) ctx.flash('Could not save badge size.', false);
+      }
+    });
+  }
+  if (rpBadgeRange) {
+    rpBadgeRange.addEventListener('change', async function () {
+      const draft = currentReportTemplateDraft();
+      try {
+        await saveReportSettingsPatch({ layout: draft.layout });
+        currentReportSettings = mergeReportSettingsLocal(currentReportSettings || {}, { layout: draft.layout });
+      } catch (_) {
+        if (ctx.flash) ctx.flash('Could not save badge size.', false);
+      }
+    });
+  }
+  async function nudgeReportCommentGap(delta) {
+    const draft = currentReportTemplateDraft();
+    const n = clampCommentGapMm(Number(draft.layout.commentGapMm) + delta);
+    if (rpCommentGapRange) rpCommentGapRange.value = String(n);
+    previewReportTemplateControls();
+    const layout = Object.assign({}, draft.layout, { commentGapMm: n });
+    await saveReportSettingsPatch({ layout: layout });
+    currentReportSettings = mergeReportSettingsLocal(currentReportSettings || {}, { layout: layout });
+  }
+  if (rpCommentGapDec) {
+    rpCommentGapDec.addEventListener('click', async function () {
+      try { await nudgeReportCommentGap(-1); }
+      catch (_) { if (ctx.flash) ctx.flash('Could not save comment spacing.', false); }
+    });
+  }
+  if (rpCommentGapInc) {
+    rpCommentGapInc.addEventListener('click', async function () {
+      try { await nudgeReportCommentGap(1); }
+      catch (_) { if (ctx.flash) ctx.flash('Could not save comment spacing.', false); }
+    });
+  }
+  if (rpCommentGapRange) {
+    rpCommentGapRange.addEventListener('change', async function () {
+      const draft = currentReportTemplateDraft();
+      try {
+        await saveReportSettingsPatch({ layout: draft.layout });
+        currentReportSettings = mergeReportSettingsLocal(currentReportSettings || {}, { layout: draft.layout });
+      } catch (_) {
+        if (ctx.flash) ctx.flash('Could not save comment spacing.', false);
+      }
     });
   }
   if (rpTemplateUpload && rpTemplateFile) {

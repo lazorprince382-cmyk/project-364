@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Class dashboard — THE OCEAN OF KNOWLEDGE SCHOOL</title>
     <link rel="stylesheet" href="/css/main.css" />
-    <link rel="stylesheet" href="/css/dashboard-app.css?v=20260612a" />
+    <link rel="stylesheet" href="/css/dashboard-app.css?v=20260619a" />
     <link rel="stylesheet" href="/css/clear-ocean-ui.css?v=20260531a" />
     <link rel="stylesheet" href="/css/class-page1.css?v=20260528e" />
     <link rel="stylesheet" href="/css/image-crop-modal.css?v=20260604a" />
@@ -738,6 +738,24 @@
                 <span id="rp-font-range-value" class="report-range-value">100%</span>
               </div>
             </div>
+            <div class="report-customize-field report-customize-field--wide">
+              <label for="rp-badge-range">School badge size</label>
+              <div class="report-range-row">
+                <button type="button" class="btn" id="rp-badge-dec" title="Decrease school badge">-</button>
+                <input id="rp-badge-range" type="range" min="0.7" max="1.5" step="0.05" value="1" />
+                <span id="rp-badge-range-value" class="report-range-value">100%</span>
+                <button type="button" class="btn" id="rp-badge-inc" title="Increase school badge">+</button>
+              </div>
+            </div>
+            <div class="report-customize-field report-customize-field--wide">
+              <label for="rp-comment-gap-range">Comment gap</label>
+              <div class="report-range-row">
+                <button type="button" class="btn" id="rp-comment-gap-dec" title="Reduce space between comments">-</button>
+                <input id="rp-comment-gap-range" type="range" min="0" max="24" step="1" value="4" />
+                <span id="rp-comment-gap-value" class="report-range-value">4mm</span>
+                <button type="button" class="btn" id="rp-comment-gap-inc" title="Increase space between comments">+</button>
+              </div>
+            </div>
             <div class="report-customize-field">
               <label id="rp-subject-offset-x-label" for="rp-subject-offset-x">Subject pictures X</label>
               <input id="rp-subject-offset-x" type="number" min="-160" max="160" step="2" value="0" />
@@ -1070,6 +1088,6 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="/js/comment-quick-suggestions.js?v=20260604a"></script>
-    <script src="/js/class-comments.js?v=20260604g"></script>
+    <script src="/js/class-comments.js?v=20260619d"></script>
   </body>
 </html>

@@ -338,9 +338,10 @@ const UPLOADS = path.join(ROOT, 'uploads');
 const STUDENT_PHOTOS = path.join(UPLOADS, 'students');
 const NOTES = path.join(UPLOADS, 'notes');
 const PROFILES = path.join(UPLOADS, 'profiles');
+const GROUP_PROFILES = path.join(UPLOADS, 'group-profiles');
 const CLASS_MESSAGES = path.join(UPLOADS, 'class-messages');
 
-[UPLOADS, STUDENT_PHOTOS, NOTES, PROFILES, CLASS_MESSAGES].forEach((dir) => {
+[UPLOADS, STUDENT_PHOTOS, NOTES, PROFILES, GROUP_PROFILES, CLASS_MESSAGES].forEach((dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
@@ -398,6 +399,20 @@ const storageProfile = multer.diskStorage({
 
 const uploadProfile = multer({
   storage: storageProfile,
+  limits: { fileSize: 4 * 1024 * 1024 },
+});
+
+const storageGroupProfile = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, GROUP_PROFILES),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.jpg';
+    const safe = `group-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+    cb(null, safe);
+  },
+});
+
+const uploadGroupProfile = multer({
+  storage: storageGroupProfile,
   limits: { fileSize: 4 * 1024 * 1024 },
 });
 
@@ -1089,6 +1104,22 @@ async function isStaffGroupMember(groupId, staffId) {
   return rows.length > 0;
 }
 
+async function isStaffGroupAdmin(groupId, staffId) {
+  const gid = Number(groupId);
+  const sid = Number(staffId);
+  if (!gid || !sid || Number.isNaN(gid) || Number.isNaN(sid)) return false;
+  const { rows } = await pool.query(
+    `SELECT 1 FROM staff_message_groups WHERE id = $1 AND created_by_staff_id = $2`,
+    [gid, sid]
+  );
+  return rows.length > 0;
+}
+
+function staffCanManageGroup(req) {
+  const role = req.staffSession && String(req.staffSession.role || '').trim();
+  return role === 'director' || role === 'head_teacher';
+}
+
 async function recordDeliveredStaffGroupMessages(rows, readerStaffId) {
   if (!rows.length || !readerStaffId) return;
   const incoming = rows
@@ -1148,9 +1179,11 @@ function messageAttachmentPreview(body, path, origName) {
 
 async function loadStaffGroupInboxRows(me) {
   const { rows } = await pool.query(
-    `SELECT
+     `SELECT
        g.id AS group_id,
        g.name,
+       g.avatar_url,
+       g.created_by_staff_id,
        g.created_at AS group_created_at,
        (
          SELECT COUNT(*)::int FROM staff_message_group_members gm WHERE gm.group_id = g.id
@@ -1196,6 +1229,9 @@ async function loadStaffGroupInboxRows(me) {
       kind: 'group',
       group_id: r.group_id,
       name: r.name,
+      avatar_url: r.avatar_url || null,
+      created_by_staff_id: r.created_by_staff_id,
+      is_admin: Number(r.created_by_staff_id) === me,
       member_count: r.member_count,
       display_name: r.name,
       workspace_label: r.member_count + ' members · Group',
@@ -1284,9 +1320,11 @@ async function loadGhostStaffDmInboxRows() {
 /** System admin (ghost): every group chat in the school. */
 async function loadGhostStaffAllGroupInboxRows() {
   const { rows } = await pool.query(
-    `SELECT
+     `SELECT
        g.id AS group_id,
        g.name,
+       g.avatar_url,
+       g.created_by_staff_id,
        g.created_at AS group_created_at,
        (
          SELECT COUNT(*)::int FROM staff_message_group_members gm WHERE gm.group_id = g.id
@@ -1320,6 +1358,9 @@ async function loadGhostStaffAllGroupInboxRows() {
       observer: true,
       group_id: r.group_id,
       name: r.name,
+      avatar_url: r.avatar_url || null,
+      created_by_staff_id: r.created_by_staff_id,
+      is_admin: false,
       member_count: r.member_count,
       display_name: r.name,
       workspace_label: (r.member_count || 0) + ' members · Group',
@@ -2260,13 +2301,17 @@ app.get(
           return res.status(403).json({ error: 'You are not a member of this group' });
         }
         const groupRes = await pool.query(
-          `SELECT g.id, g.name,
+          `SELECT g.id, g.name, g.created_by_staff_id, g.avatar_url,
                   (SELECT COUNT(*)::int FROM staff_message_group_members WHERE group_id = g.id) AS member_count
            FROM staff_message_groups g WHERE g.id = $1`,
           [groupId]
         );
         if (!groupRes.rows.length) return res.status(404).json({ error: 'Group not found' });
         const g = groupRes.rows[0];
+        const { rows: memberRows } = await pool.query(
+          `SELECT staff_id FROM staff_message_group_members WHERE group_id = $1 ORDER BY joined_at ASC`,
+          [groupId]
+        );
         const { rows } = await pool.query(
           `SELECT m.id, m.group_id, m.sender_staff_id, m.body, m.attachment_path,
                   m.attachment_original_name, m.created_at,
@@ -2287,7 +2332,12 @@ app.get(
           group: {
             id: g.id,
             name: g.name,
+            created_by_staff_id: g.created_by_staff_id,
+            avatar_url: g.avatar_url || null,
             member_count: g.member_count,
+            is_admin:
+              !ghostObserve && (Number(g.created_by_staff_id) === me || staffCanManageGroup(req)),
+            member_ids: memberRows.map((r) => Number(r.staff_id)).filter((id) => id && !Number.isNaN(id)),
           },
           messages: rows.map((m) => ({
             id: m.id,
@@ -2295,7 +2345,9 @@ app.get(
             sender_staff_id: m.sender_staff_id,
             sender_name: m.sender_name,
             sender_role: m.sender_role,
-            sender_role_label: staffRoleLabel(m.sender_role),
+            sender_role_label:
+              Number(m.sender_staff_id) === Number(g.created_by_staff_id) ? 'Admin' : staffRoleLabel(m.sender_role),
+            sender_is_admin: Number(m.sender_staff_id) === Number(g.created_by_staff_id),
             sender_avatar_url: m.sender_avatar_url || null,
             body: m.body,
             attachment_path: m.attachment_path,
@@ -2449,6 +2501,9 @@ app.post(
       res.status(201).json({
         id: group.id,
         name: group.name,
+        created_by_staff_id: group.created_by_staff_id,
+        avatar_url: null,
+        is_admin: true,
         member_count: memberList.length,
         kind: 'group',
       });
@@ -2460,6 +2515,123 @@ app.post(
       }
       throw err;
     }
+  })
+);
+
+app.post(
+  '/api/staff-messages/groups/:id/members',
+  requireStaffRoles(STAFF_DM_ROLES),
+  asyncRoute(async (req, res) => {
+    try {
+      const me = Number(req.staffSession.id);
+      const groupId = parseInt(req.params.id, 10);
+      if (!groupId || Number.isNaN(groupId)) return res.status(400).json({ error: 'Valid group id required' });
+      if (sessionIsSystemAdmin(req)) {
+        return res.status(403).json({ error: 'System admin can only view groups, not add members.' });
+      }
+      if (!(await isStaffGroupMember(groupId, me))) {
+        return res.status(403).json({ error: 'You are not a member of this group' });
+      }
+      if (!(await isStaffGroupAdmin(groupId, me)) && !staffCanManageGroup(req)) {
+        return res.status(403).json({ error: 'Only the group admin, director, or head teacher can add members.' });
+      }
+      const rawIds = Array.isArray(req.body && req.body.member_ids) ? req.body.member_ids : [];
+      const memberSet = new Set();
+      rawIds.forEach((x) => {
+        const id = Number(x);
+        if (id && !Number.isNaN(id) && id !== me) memberSet.add(id);
+      });
+      if (!memberSet.size) return res.status(400).json({ error: 'Select at least one staff member to add' });
+      const memberList = [...memberSet];
+      const activeCheck = await pool.query(
+        `SELECT id FROM school_staff WHERE id = ANY($1::int[]) AND active = TRUE`,
+        [memberList]
+      );
+      if (activeCheck.rows.length !== memberList.length) {
+        return res.status(400).json({ error: 'One or more selected accounts are missing or disabled' });
+      }
+      const before = await pool.query(
+        `SELECT staff_id FROM staff_message_group_members WHERE group_id = $1`,
+        [groupId]
+      );
+      const beforeSet = new Set(before.rows.map((r) => Number(r.staff_id)));
+      const values = memberList.map((_, i) => `($1, $${i + 2})`).join(', ');
+      await pool.query(
+        `INSERT INTO staff_message_group_members (group_id, staff_id)
+         VALUES ${values}
+         ON CONFLICT (group_id, staff_id) DO NOTHING`,
+        [groupId, ...memberList]
+      );
+      const after = await pool.query(
+        `SELECT staff_id FROM staff_message_group_members WHERE group_id = $1 ORDER BY joined_at ASC`,
+        [groupId]
+      );
+      const memberIds = after.rows.map((r) => Number(r.staff_id)).filter((id) => id && !Number.isNaN(id));
+      const added = memberIds.filter((id) => !beforeSet.has(id)).length;
+      res.json({
+        ok: true,
+        group_id: groupId,
+        added_count: added,
+        member_count: memberIds.length,
+        member_ids: memberIds,
+      });
+    } catch (err) {
+      if (staffAccountsUnavailable(err)) {
+        return res.status(503).json({
+          error: 'Group chats need database update. Run: npm run db:init (DATABASE_URL required).',
+        });
+      }
+      throw err;
+    }
+  })
+);
+
+app.post(
+  '/api/staff-messages/groups/:id/avatar',
+  requireStaffRoles(STAFF_DM_ROLES),
+  uploadGroupProfile.single('avatar'),
+  asyncRoute(async (req, res) => {
+    const me = Number(req.staffSession.id);
+    const groupId = parseInt(req.params.id, 10);
+    function removeUploaded() {
+      if (!req.file) return;
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (_) {}
+    }
+    if (!groupId || Number.isNaN(groupId)) {
+      removeUploaded();
+      return res.status(400).json({ error: 'Valid group id required' });
+    }
+    if (sessionIsSystemAdmin(req)) {
+      removeUploaded();
+      return res.status(403).json({ error: 'System admin can only view groups, not update photos.' });
+    }
+    if (!(await isStaffGroupMember(groupId, me))) {
+      removeUploaded();
+      return res.status(403).json({ error: 'You are not a member of this group' });
+    }
+    if (!(await isStaffGroupAdmin(groupId, me)) && !staffCanManageGroup(req)) {
+      removeUploaded();
+      return res.status(403).json({ error: 'Only the group admin, director, or head teacher can update the group photo.' });
+    }
+    if (!req.file) return res.status(400).json({ error: 'avatar file required' });
+    const url = `/uploads/group-profiles/${req.file.filename}`;
+    const { rows } = await pool.query(
+      `UPDATE staff_message_groups SET avatar_url = $2 WHERE id = $1
+       RETURNING id, name, created_by_staff_id, avatar_url`,
+      [groupId, url]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Group not found' });
+    res.json({
+      ok: true,
+      group: {
+        id: rows[0].id,
+        name: rows[0].name,
+        created_by_staff_id: rows[0].created_by_staff_id,
+        avatar_url: rows[0].avatar_url,
+      },
+    });
   })
 );
 

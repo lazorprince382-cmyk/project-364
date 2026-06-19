@@ -2598,14 +2598,14 @@ body.app-director .dash-notify-btn:disabled {
 
 .baby-badge {
   position: absolute;
-  right: 7mm;
-  top: 13mm;
-  width: 32mm;
+  right: 6mm;
+  top: 11mm;
+  width: calc(38mm * var(--rp-badge-scale, 1));
   height: auto;
 }
 
 .baby-meta {
-  margin: 2.2mm 43mm 0 48mm;
+  margin: 2.2mm 47mm 0 48mm;
 }
 
 .baby-meta p {
@@ -2684,13 +2684,13 @@ body.app-director .dash-notify-btn:disabled {
 }
 
 .baby-report-card.middle-report-card .baby-badge {
-  right: 6mm;
-  top: 11mm;
-  width: 27mm;
+  right: 5mm;
+  top: 9.5mm;
+  width: calc(32mm * var(--rp-badge-scale, 1));
 }
 
 .baby-report-card.middle-report-card .baby-meta {
-  margin: 1.5mm 36mm 0 40mm;
+  margin: 1.5mm 39mm 0 40mm;
 }
 
 .baby-report-card.middle-report-card .baby-meta p {
@@ -2730,8 +2730,14 @@ body.app-director .dash-notify-btn:disabled {
 }
 
 .baby-report-card.middle-report-card .baby-head-row {
-  grid-template-columns: minmax(0, 1fr) 46mm;
+  grid-template-columns: minmax(0, 1fr) 48mm;
   column-gap: 4mm;
+}
+
+.baby-report-card.middle-report-card .baby-comment-sign-row {
+  grid-template-columns: minmax(0, 1fr) 48mm;
+  column-gap: 4mm;
+  margin-bottom: 2.4mm;
 }
 
 .baby-report-card.middle-report-card .baby-signatures-stack {
@@ -2743,7 +2749,7 @@ body.app-director .dash-notify-btn:disabled {
 }
 
 .baby-report-card.middle-report-card .baby-sign-row .sig-line {
-  width: 27mm;
+  width: 31mm;
   border-bottom-width: 0.3mm;
 }
 
@@ -2894,11 +2900,27 @@ body.app-director .dash-notify-btn:disabled {
   overflow-wrap: anywhere;
 }
 
+.baby-comment-sign-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56mm;
+  align-items: center;
+  column-gap: 8mm;
+  margin: 0;
+}
+
+.baby-comment-sign-row:not(.baby-head-row) {
+  margin-bottom: calc(var(--rp-comment-gap-mm, 4) * 1mm);
+}
+
+.baby-comment-sign-row p {
+  margin: 0;
+}
+
 .baby-head-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 52mm;
+  grid-template-columns: minmax(0, 1fr) 56mm;
   align-items: center;
-  column-gap: 6mm;
+  column-gap: 8mm;
 }
 
 .baby-head-row p {
@@ -2920,15 +2942,16 @@ body.app-director .dash-notify-btn:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 2mm;
+  gap: 3mm;
   margin: 0;
   font-size: calc(4.3mm * var(--rp-font-scale, 1));
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .baby-sign-row .sig-line {
   display: inline-block;
-  width: 30mm;
+  width: 36mm;
   border-bottom: 0.4mm solid #111;
 }
 

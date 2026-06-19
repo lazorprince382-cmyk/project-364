@@ -17,6 +17,9 @@
   let activeClassChannel = null;
   let observerMode = false;
   let newChatMode = 'dm';
+  let groupMemberEditMode = false;
+  let activeGroupMemberIds = new Set();
+  let activeGroupIsAdmin = false;
   let selectedGroupMemberIds = new Set();
   let inboxRows = [];
   let totalUnreadCount = 0;
@@ -115,6 +118,17 @@
   function isReadOnlyMessageView() {
     if (!isGhostObserverMode()) return false;
     return isObservingStaffChat() || !!activeClassChannel || !!activeGroupId;
+  }
+
+  function openFilePicker(input) {
+    if (!input) return;
+    if (typeof input.showPicker === 'function') {
+      try {
+        input.showPicker();
+        return;
+      } catch (_) {}
+    }
+    input.click();
   }
 
   function ensureObserverHint() {
@@ -412,6 +426,93 @@
     btn.hidden = !hasOpenChat() || isReadOnlyMessageView();
   }
 
+  function ensureAddGroupMembersButton() {
+    let btn = document.getElementById('dm-add-group-members-btn');
+    if (btn) return btn;
+    const clearBtn = document.getElementById('dm-clear-chat-btn');
+    const header = clearBtn ? clearBtn.parentNode : document.querySelector('.dm-chat-header');
+    if (!header) return null;
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'dm-add-group-members-btn';
+    btn.className = 'btn btn-sm dm-add-group-members-btn';
+    btn.textContent = 'Add members';
+    if (clearBtn) header.insertBefore(btn, clearBtn);
+    else header.appendChild(btn);
+    btn.addEventListener('click', openAddGroupMembersModal);
+    return btn;
+  }
+
+  function ensureGroupAvatarButton() {
+    let btn = document.getElementById('dm-change-group-avatar-btn');
+    if (btn) return btn;
+    const addBtn = ensureAddGroupMembersButton();
+    const clearBtn = document.getElementById('dm-clear-chat-btn');
+    const header = clearBtn ? clearBtn.parentNode : document.querySelector('.dm-chat-header');
+    if (!header) return null;
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'dm-change-group-avatar-btn';
+    btn.className = 'btn btn-sm dm-change-group-avatar-btn';
+    btn.title = 'Change group photo';
+    btn.setAttribute('aria-label', 'Change group photo');
+    btn.textContent = 'Photo';
+    if (addBtn && addBtn.parentNode === header) header.insertBefore(btn, addBtn);
+    else if (clearBtn) header.insertBefore(btn, clearBtn);
+    else header.appendChild(btn);
+    btn.addEventListener('click', function () {
+      if (!activeGroupId || !activeGroupIsAdmin) return;
+      openFilePicker(ensureGroupAvatarInput());
+    });
+    return btn;
+  }
+
+  function ensureGroupAvatarInput() {
+    let input = document.getElementById('dm-group-avatar-input');
+    if (input) return input;
+    input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.id = 'dm-group-avatar-input';
+    input.hidden = true;
+    document.body.appendChild(input);
+    input.addEventListener('change', updateActiveGroupAvatar);
+    return input;
+  }
+
+  function updateAddGroupMembersButton() {
+    const btn = ensureAddGroupMembersButton();
+    if (!btn) return;
+    btn.hidden = !activeGroupId || isReadOnlyMessageView() || !activeGroupIsAdmin;
+    const photoBtn = ensureGroupAvatarButton();
+    if (photoBtn) photoBtn.hidden = !activeGroupId || isReadOnlyMessageView() || !activeGroupIsAdmin;
+  }
+
+  async function updateActiveGroupAvatar() {
+    const input = document.getElementById('dm-group-avatar-input');
+    const file = input && input.files && input.files[0] ? input.files[0] : null;
+    if (!file || !activeGroupId) return;
+    const fd = new FormData();
+    fd.append('avatar', file);
+    try {
+      const res = await fetch('/api/staff-messages/groups/' + encodeURIComponent(String(activeGroupId)) + '/avatar', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: fd,
+      });
+      const out = await parseResponse(res);
+      if (!out.ok) {
+        setFeedback((out.data && out.data.error) || 'Could not update group photo.', false);
+        return;
+      }
+      setFeedback('Group photo updated.', true);
+      await loadGroupThread(activeGroupId);
+      await loadInbox();
+    } finally {
+      if (input) input.value = '';
+    }
+  }
+
   function classMessageSenderLabel() {
     const name = myDisplayName();
     if (name && String(name).trim()) return String(name).trim();
@@ -431,20 +532,53 @@
   function setNewChatMode(mode) {
     newChatMode = mode === 'group' ? 'group' : 'dm';
     selectedGroupMemberIds = new Set();
+    groupMemberEditMode = false;
     const dmTab = document.getElementById('dm-new-mode-dm');
     const groupTab = document.getElementById('dm-new-mode-group');
     const hint = document.getElementById('dm-new-mode-hint');
     const groupFields = document.getElementById('dm-new-group-fields');
     const createBtn = document.getElementById('dm-create-group-btn');
+    const title = document.getElementById('dm-new-title');
+    const tabs = dmTab && dmTab.parentElement;
     if (dmTab) dmTab.classList.toggle('is-active', newChatMode === 'dm');
     if (groupTab) groupTab.classList.toggle('is-active', newChatMode === 'group');
+    if (tabs) tabs.hidden = false;
     if (groupFields) groupFields.hidden = newChatMode !== 'group';
-    if (createBtn) createBtn.hidden = newChatMode !== 'group';
+    if (createBtn) {
+      createBtn.hidden = newChatMode !== 'group';
+      createBtn.textContent = 'Create group';
+    }
+    if (title) title.textContent = 'New conversation';
     if (hint) {
       hint.textContent =
         newChatMode === 'group'
           ? 'Select staff, name the group, then tap Create group. Only members can see and send messages.'
           : 'Tap someone’s account to open a private chat. Only that login sees your messages.';
+    }
+    const search = document.getElementById('dm-account-search');
+    renderAccountList(search ? search.value : '');
+  }
+
+  function setAddGroupMembersMode() {
+    newChatMode = 'group';
+    groupMemberEditMode = true;
+    selectedGroupMemberIds = new Set();
+    const dmTab = document.getElementById('dm-new-mode-dm');
+    const groupTab = document.getElementById('dm-new-mode-group');
+    const tabs = dmTab && dmTab.parentElement;
+    const title = document.getElementById('dm-new-title');
+    const hint = document.getElementById('dm-new-mode-hint');
+    const groupFields = document.getElementById('dm-new-group-fields');
+    const createBtn = document.getElementById('dm-create-group-btn');
+    if (tabs) tabs.hidden = true;
+    if (dmTab) dmTab.classList.remove('is-active');
+    if (groupTab) groupTab.classList.add('is-active');
+    if (title) title.textContent = 'Add group members';
+    if (hint) hint.textContent = 'Select staff to add to this group. Existing members are already included.';
+    if (groupFields) groupFields.hidden = true;
+    if (createBtn) {
+      createBtn.hidden = false;
+      createBtn.textContent = 'Add members';
     }
     const search = document.getElementById('dm-account-search');
     renderAccountList(search ? search.value : '');
@@ -478,6 +612,7 @@
     modal.classList.remove('open');
     modal.setAttribute('hidden', '');
     modal.setAttribute('aria-hidden', 'true');
+    groupMemberEditMode = false;
   }
 
   function voiceShareModalEl() {
@@ -546,6 +681,7 @@
       .trim()
       .toLowerCase();
     const rows = contacts.filter(function (c) {
+      if (groupMemberEditMode && activeGroupMemberIds.has(Number(c.id))) return false;
       if (!q) return true;
       const hay =
         (c.display_name || '') +
@@ -561,7 +697,7 @@
         (c.role_label || '');
       return hay.toLowerCase().indexOf(q) !== -1;
     });
-    if (filterText === 'Loading…') {
+    if (filterText === 'Loading…' || filterText === 'Loading...') {
       list.innerHTML = '<p class="dm-inbox-empty">Loading staff accounts…</p>';
       return;
     }
@@ -1199,18 +1335,22 @@
     const avatarEl = document.getElementById('dm-chat-peer-avatar');
     activeHeaderProfile = null;
     if (group) {
+      activeGroupIsAdmin = !!group.is_admin;
       activeHeaderProfile = {
         display_name: group.name || 'Group',
+        avatar_url: group.avatar_url || '',
         workspace_label: (group.member_count || 0) + ' members · Group chat',
       };
       if (nameEl) nameEl.textContent = group.name || 'Group';
       if (roleEl) {
-        roleEl.textContent = (group.member_count || 0) + ' members · Group chat';
+        roleEl.textContent =
+          (group.member_count || 0) + ' members · Group chat' + (group.is_admin ? ' · You are admin' : '');
       }
       if (avatarEl) {
-        avatarEl.innerHTML = staffAvatarHtml(null, group.name, 'dm-chat-header-avatar');
+        avatarEl.innerHTML = staffAvatarHtml(group.avatar_url, group.name, 'dm-chat-header-avatar');
       }
     } else if (peer) {
+      activeGroupIsAdmin = false;
       activeHeaderProfile = {
         display_name: peer.display_name || 'Staff',
         workspace_label: contactWorkspaceLine(peer),
@@ -1250,6 +1390,7 @@
       }
     }
     updateClearChatButton();
+    updateAddGroupMembersButton();
     syncObserverComposeUi();
     syncDmLayout();
   }
@@ -1349,7 +1490,7 @@
             '</span>'
           : '';
       const avatar = isGroup
-        ? staffAvatarHtml(null, row.name, 'dm-inbox-avatar')
+        ? staffAvatarHtml(row.avatar_url, row.name, 'dm-inbox-avatar')
         : staffAvatarHtml(row.avatar_url, row.display_name, 'dm-inbox-avatar');
       btn.innerHTML =
         '<span class="dm-inbox-item-row">' +
@@ -1671,6 +1812,12 @@
     }
     const group = out.data && out.data.group;
     const messages = (out.data && out.data.messages) || [];
+    activeGroupMemberIds = new Set(
+      ((group && group.member_ids) || []).map(function (id) {
+        return Number(id);
+      })
+    );
+    activeGroupIsAdmin = !!(group && group.is_admin);
     renderThread(messages, null, group);
   }
 
@@ -1718,6 +1865,7 @@
     activeObservePeerId = null;
     activeGroupId = null;
     activeClassChannel = null;
+    activeGroupMemberIds = new Set();
     lastSeenMessageIds = new Set();
     pollPrimed = false;
     resetThreadSnapshot();
@@ -1760,6 +1908,7 @@
     activeObservePeerId = staffB;
     activeGroupId = null;
     activeClassChannel = null;
+    activeGroupMemberIds = new Set();
     lastSeenMessageIds = new Set();
     pollPrimed = false;
     resetThreadSnapshot();
@@ -1778,6 +1927,7 @@
     activeObservePeerId = null;
     activeGroupId = null;
     activeClassChannel = null;
+    activeGroupMemberIds = new Set();
     lastSeenMessageIds = new Set();
     pollPrimed = false;
     resetThreadSnapshot();
@@ -1797,6 +1947,7 @@
     activePeerId = null;
     activeObservePeerId = null;
     activeClassChannel = null;
+    activeGroupMemberIds = new Set();
     lastSeenMessageIds = new Set();
     pollPrimed = false;
     resetThreadSnapshot();
@@ -1857,7 +2008,78 @@
     await loadInbox();
   }
 
+  async function openAddGroupMembersModal() {
+    if (!activeGroupId) {
+      setFeedback('Select a group first.', false);
+      return;
+    }
+    if (!activeGroupIsAdmin) {
+      setFeedback('Only the group creator, director, or head teacher can add members.', false);
+      return;
+    }
+    setAddGroupMembersMode();
+    openDmNewModal();
+    const search = document.getElementById('dm-account-search');
+    if (search) search.value = '';
+    renderAccountList('Loading...');
+    const loaded = await loadContacts();
+    renderAccountList('');
+    if (search) search.focus();
+    if (loaded && !loaded.ok) {
+      setFeedback(loaded.error || 'Could not load staff accounts.', false);
+    } else {
+      const available = contacts.filter(function (c) {
+        return !activeGroupMemberIds.has(Number(c.id));
+      });
+      if (!available.length) {
+        setFeedback('All active staff accounts are already in this group.', true);
+      } else {
+        setFeedback('', true);
+      }
+    }
+  }
+
+  async function addMembersToActiveGroup() {
+    if (!activeGroupId) {
+      setFeedback('Select a group first.', false);
+      return;
+    }
+    const memberIds = Array.from(selectedGroupMemberIds).filter(function (id) {
+      return !activeGroupMemberIds.has(Number(id));
+    });
+    if (!memberIds.length) {
+      setFeedback('Select at least one staff member to add.', false);
+      return;
+    }
+    const createBtn = document.getElementById('dm-create-group-btn');
+    if (createBtn) createBtn.disabled = true;
+    const res = await fetch('/api/staff-messages/groups/' + encodeURIComponent(String(activeGroupId)) + '/members', {
+      method: 'POST',
+      headers: authHeaders(true),
+      body: JSON.stringify({ member_ids: memberIds }),
+    });
+    const out = await parseResponse(res);
+    if (createBtn) createBtn.disabled = false;
+    if (!out.ok) {
+      const msg = (out.data && out.data.error) || 'Could not add members.';
+      setFeedback(msg, false);
+      flash(msg, false);
+      return;
+    }
+    selectedGroupMemberIds = new Set();
+    closeDmNewModal();
+    groupMemberEditMode = false;
+    const added = Number(out.data && out.data.added_count) || 0;
+    setFeedback(added ? 'Members added.' : 'Those staff are already in this group.', true);
+    await loadGroupThread(activeGroupId);
+    await loadInbox();
+  }
+
   async function createGroupFromModal() {
+    if (groupMemberEditMode) {
+      await addMembersToActiveGroup();
+      return;
+    }
     const nameEl = document.getElementById('dm-group-name');
     const name = nameEl ? String(nameEl.value || '').trim() : '';
     if (!name) {
@@ -1924,13 +2146,14 @@
         (c.role_label || '');
       return hay.toLowerCase().indexOf(q) !== -1;
     });
-    if (filterText === 'Loading…') {
+    if (filterText === 'Loading…' || filterText === 'Loading...') {
       list.innerHTML = '<p class="dm-inbox-empty">Loading staff accounts…</p>';
       return;
     }
     if (!rows.length) {
-      list.innerHTML =
-        '<p class="dm-inbox-empty">No matching staff accounts. Active accounts from Staff &amp; accounts appear here (disabled accounts are not listed).</p>';
+      list.innerHTML = groupMemberEditMode
+        ? '<p class="dm-inbox-empty">No staff accounts available to add. Everyone active may already be in this group.</p>'
+        : '<p class="dm-inbox-empty">No matching staff accounts. Active accounts from Staff &amp; accounts appear here (disabled accounts are not listed).</p>';
       return;
     }
     list.innerHTML = '';

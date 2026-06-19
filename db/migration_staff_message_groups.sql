@@ -4,8 +4,11 @@ CREATE TABLE IF NOT EXISTS staff_message_groups (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   created_by_staff_id INT NOT NULL REFERENCES school_staff(id) ON DELETE CASCADE,
+  avatar_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE staff_message_groups ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 
 CREATE TABLE IF NOT EXISTS staff_message_group_members (
   group_id INT NOT NULL REFERENCES staff_message_groups(id) ON DELETE CASCADE,

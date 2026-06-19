@@ -1194,7 +1194,11 @@
     document.getElementById('edit-id').value = String(r.id);
     document.getElementById('edit_full_name').value = r.full_name;
     document.getElementById('edit_reg_no').value = r.reg_no;
-    document.getElementById('edit_passport').value = '';
+    const editPassport = document.getElementById('edit_passport');
+    if (editPassport) {
+      editPassport.value = '';
+      editPassport.dataset.ready = '';
+    }
     pendingEditPassport = null;
     document.getElementById('edit-modal').classList.add('open');
   }
@@ -1217,6 +1221,11 @@
 
   document.getElementById('edit-cancel').addEventListener('click', function () {
     pendingEditPassport = null;
+    const editPassport = document.getElementById('edit_passport');
+    if (editPassport) {
+      editPassport.value = '';
+      editPassport.dataset.ready = '';
+    }
     document.getElementById('edit-modal').classList.remove('open');
   });
 
@@ -1236,7 +1245,11 @@
       });
       if (!res.ok) throw new Error(data.error || res.statusText);
       pendingEditPassport = null;
-      document.getElementById('edit_passport').value = '';
+      const editPassport = document.getElementById('edit_passport');
+      if (editPassport) {
+        editPassport.value = '';
+        editPassport.dataset.ready = '';
+      }
       document.getElementById('edit-modal').classList.remove('open');
       flash('Learner updated.', true);
       pushActivity('Updated learner: ' + (data.full_name || ''));
@@ -1282,8 +1295,11 @@
       const f = this.files && this.files[0];
       this.value = '';
       if (!f) return;
+      pendingEditPassport = null;
+      editPassportInp.dataset.ready = '';
       openPassportCrop(f, function (cropped) {
         pendingEditPassport = cropped;
+        editPassportInp.dataset.ready = '1';
         flash('Passport photo cropped. Tap Save to update the learner.', true);
       });
     });
