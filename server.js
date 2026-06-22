@@ -4833,13 +4833,15 @@ app.get(
       subjectGridOffsetY: 0,
       commentsOffsetX: 0,
       commentsOffsetY: 0,
+      badgeScale: 1,
+      commentGapMm: 4,
     };
     if (rows.length && rows[0].value && typeof rows[0].value === 'object') {
       nextTermBegins =
         rows[0].value.nextTermBegins != null ? String(rows[0].value.nextTermBegins) : '';
       fontScale =
         rows[0].value.fontScale != null ? Number(rows[0].value.fontScale) : 1;
-      if (Number.isNaN(fontScale) || fontScale < 0.8 || fontScale > 1.4) fontScale = 1;
+      if (Number.isNaN(fontScale) || fontScale < 0.8 || fontScale > 1.6) fontScale = 1;
       templatePath =
         rows[0].value.templatePath != null ? String(rows[0].value.templatePath) : '';
       fontFamily =
@@ -4868,6 +4870,14 @@ app.get(
           rawLayout.commentsOffsetY != null && Number.isFinite(Number(rawLayout.commentsOffsetY))
             ? Math.max(-160, Math.min(160, Number(rawLayout.commentsOffsetY)))
             : 0,
+        badgeScale:
+          rawLayout.badgeScale != null && Number.isFinite(Number(rawLayout.badgeScale))
+            ? Math.max(0.7, Math.min(1.5, Number(rawLayout.badgeScale)))
+            : 1,
+        commentGapMm:
+          rawLayout.commentGapMm != null && Number.isFinite(Number(rawLayout.commentGapMm))
+            ? Math.max(0, Math.min(24, Number(rawLayout.commentGapMm)))
+            : 4,
       };
     }
     // If a stream-specific report has no template yet, reuse any template
@@ -4909,7 +4919,7 @@ app.put(
         : '';
     let fontScale =
       req.body && req.body.fontScale != null ? Number(req.body.fontScale) : 1;
-    if (Number.isNaN(fontScale) || fontScale < 0.8 || fontScale > 1.4) fontScale = 1;
+    if (Number.isNaN(fontScale) || fontScale < 0.8 || fontScale > 1.6) fontScale = 1;
     let fontFamily =
       req.body && req.body.fontFamily != null ? String(req.body.fontFamily).trim() : 'default';
     if (!['default', 'calibri', 'georgia', 'verdana', 'trebuchet', 'times'].includes(fontFamily)) {
@@ -4939,6 +4949,14 @@ app.put(
         rawLayout.commentsOffsetY != null && Number.isFinite(Number(rawLayout.commentsOffsetY))
           ? Math.max(-160, Math.min(160, Number(rawLayout.commentsOffsetY)))
           : 0,
+      badgeScale:
+        rawLayout.badgeScale != null && Number.isFinite(Number(rawLayout.badgeScale))
+          ? Math.max(0.7, Math.min(1.5, Number(rawLayout.badgeScale)))
+          : 1,
+      commentGapMm:
+        rawLayout.commentGapMm != null && Number.isFinite(Number(rawLayout.commentGapMm))
+          ? Math.max(0, Math.min(24, Number(rawLayout.commentGapMm)))
+          : 4,
     };
     const templatePath =
       req.body && req.body.templatePath != null ? String(req.body.templatePath).slice(0, 500) : '';
@@ -4977,6 +4995,8 @@ app.post(
         subjectGridOffsetY: 0,
         commentsOffsetX: 0,
         commentsOffsetY: 0,
+        badgeScale: 1,
+        commentGapMm: 4,
       },
     };
     if (prev.rows.length && prev.rows[0].value && typeof prev.rows[0].value === 'object') {

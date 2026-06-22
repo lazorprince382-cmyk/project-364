@@ -424,24 +424,29 @@
     }
   }
 
-  /** Skill teachers (e.g. Computer) may open any class workspace; class teachers stay scoped. */
+  /** Skill teachers may open any class; P1/P2 class teachers may share both primary dashboards. */
   function canOpenAnyClassDashboard(staff) {
     if (!staff) return false;
     if (isSystemAdminStaff(staff)) return true;
     const role = staff.role;
+    const assigned = normalizeClassLevelSlug(staff.class_level || '');
     return (
       role === 'skill_teacher' ||
       role === 'head_teacher' ||
-      role === 'director'
+      role === 'director' ||
+      (role === 'class_teacher' && (assigned === 'primary1' || assigned === 'primary2'))
     );
   }
 
   function staffMatchesClassTarget(staff, classLevel, stream) {
     if (!staff || staff.role !== 'class_teacher') return true;
     const assigned = normalizeClassLevelSlug(staff.class_level || '');
+    const target = normalizeClassLevelSlug(classLevel);
     if (!assigned) return true;
-    if (assigned !== normalizeClassLevelSlug(classLevel)) return false;
-    const needsStream = classLevel === 'baby' || classLevel === 'middle';
+    const primaryLevels = ['primary1', 'primary2'];
+    if (primaryLevels.indexOf(assigned) >= 0 && primaryLevels.indexOf(target) >= 0) return true;
+    if (assigned !== target) return false;
+    const needsStream = target === 'baby' || target === 'middle';
     const assignedStream = String(staff.stream || '')
       .trim()
       .toLowerCase();

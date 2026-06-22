@@ -2440,6 +2440,48 @@ body.app-director .dash-notify-btn:disabled {
   font-weight: 700;
 }
 
+.primary-marks-table-comparison {
+  table-layout: fixed;
+  font-size: calc(2.55mm * var(--rp-font-scale, 1));
+  margin-top: 1mm;
+}
+
+.primary-marks-table-comparison .col-subject { width: 15%; }
+.primary-marks-table-comparison .col-full { width: 8%; }
+.primary-marks-table-comparison .col-scored { width: 10%; }
+.primary-marks-table-comparison .col-grade { width: 6.5%; }
+.primary-marks-table-comparison .col-remark { width: 11%; }
+.primary-marks-table-comparison .col-initials { width: 6%; }
+
+.primary-marks-table-comparison th,
+.primary-marks-table-comparison td {
+  padding: 1.25mm 0.7mm;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.primary-marks-table-comparison thead .period-head th {
+  background: #d60000;
+  color: #fff;
+  text-align: center;
+  font-size: calc(3.05mm * var(--rp-font-scale, 1));
+}
+
+.primary-marks-table-comparison thead .period-head th:first-child {
+  text-align: left;
+}
+
+.primary-marks-table-comparison thead .period-subhead th {
+  background: #f8e1e1;
+  color: #111;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.primary-marks-table-comparison tbody td:first-child {
+  font-size: calc(2.7mm * var(--rp-font-scale, 1));
+}
+
 .primary-skill-title {
   margin: 1.1mm 0 0.8mm;
   font-size: calc(3.2mm * var(--rp-font-scale, 1));

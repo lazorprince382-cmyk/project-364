@@ -1886,7 +1886,7 @@
     return periodWord + ' ' + termWord + ' ' + String(reportYear || new Date().getFullYear());
   }
 
-  function buildStudentReportHtml(student, subjectCols, byC, byM, ctBy, headBy, term, period, nextTermBegins, reportYear) {
+  function buildStudentReportHtml(student, subjectCols, byC, byM, ctBy, headBy, term, period, nextTermBegins, reportYear, comparisonByM) {
     const classLabel = labelClass();
     if (isPrimary) {
       const termLabel = reportTermHeading(period, term, reportYear);
@@ -1897,8 +1897,11 @@
       const skillSubjects = subjectOrder.filter(function (s) {
         return skillList.indexOf(s) !== -1;
       });
-      const academicRows = academicSubjects.map(function (sub) {
-        const m = byM[student.id + '\t' + sub] || {};
+      const hasComparison = (period === 'mid' || period === 'end') && comparisonByM;
+      const firstPeriodLabel = period === 'end' ? 'Mid Term' : 'Beginning Of Term';
+      const secondPeriodLabel = period === 'end' ? 'End Of Term' : 'Mid Term';
+      function reportMarkRow(map, sub) {
+        const m = (map && map[student.id + '\t' + sub]) || {};
         return {
           subject: sub,
           fullMarks: 100,
@@ -1907,7 +1910,13 @@
           remark: m.remark || '',
           initials: m.initials || '',
         };
+      }
+      const academicRows = academicSubjects.map(function (sub) {
+        return reportMarkRow(byM, sub);
       });
+      const comparisonRows = hasComparison
+        ? academicSubjects.map(function (sub) { return reportMarkRow(comparisonByM, sub); })
+        : [];
       const totalScored = academicRows.reduce(function (sum, r) {
         return sum + (Number.isFinite(r.scored) ? r.scored : 0);
       }, 0);
@@ -1916,11 +1925,24 @@
           return { subject: r.subject, agg: r.agg };
         })
       );
+      const comparisonTotalScored = comparisonRows.reduce(function (sum, r) {
+        return sum + (Number.isFinite(r.scored) ? r.scored : 0);
+      }, 0);
+      const comparisonAggregateInfo = primaryAggregateFromMarkRowsLocal(
+        comparisonRows.map(function (r) { return { subject: r.subject, agg: r.agg }; })
+      );
       const marksRowsHtml = academicRows
-        .map(function (r) {
+        .map(function (r, rowIndex) {
+          const first = comparisonRows[rowIndex] || {};
           return (
             '<tr>' +
             '<td>' + escapeHtml(r.subject) + '</td>' +
+            (hasComparison
+              ? '<td class="num">100</td>' +
+                '<td class="num">' + escapeHtml(Number.isFinite(first.scored) ? String(first.scored) : '') + '</td>' +
+                '<td class="num">' + escapeHtml(first.agg || '') + '</td>' +
+                '<td>' + escapeHtml(first.remark || '') + '</td>'
+              : '') +
             '<td class="num">100</td>' +
             '<td class="num">' + escapeHtml(Number.isFinite(r.scored) ? String(r.scored) : '') + '</td>' +
             '<td class="num">' + escapeHtml(r.agg || '') + '</td>' +
@@ -1961,11 +1983,19 @@
         '</div>' +
         '</div>' +
         '<div class="primary-report-body">' +
-        '<table class="primary-marks-table">' +
-        '<thead><tr><th>Subject</th><th>F/M</th><th>Marks scored</th><th>Grade</th><th>Remark</th><th>Initials</th></tr></thead>' +
+        '<table class="primary-marks-table' + (hasComparison ? ' primary-marks-table-comparison' : '') + '">' +
+        (hasComparison
+          ? '<colgroup><col class="col-subject" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-initials" /></colgroup>'
+          : '') +
+        (hasComparison
+          ? '<thead><tr class="period-head"><th rowspan="2">Subject</th><th colspan="4">' + escapeHtml(firstPeriodLabel) + '</th><th colspan="4">' + escapeHtml(secondPeriodLabel) + '</th><th rowspan="2">Initials</th></tr>' +
+            '<tr class="period-subhead"><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th></tr></thead>'
+          : '<thead><tr><th>Subject</th><th>F/M</th><th>Marks scored</th><th>Grade</th><th>Remark</th><th>Initials</th></tr></thead>') +
         '<tbody>' +
         marksRowsHtml +
-        '<tr class="total-row"><td>TOTAL</td><td class="num">' + escapeHtml(String(academicRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(totalScored)) + '</td><td class="num">' + escapeHtml(aggregateInfo.sum != null ? String(aggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(aggregateInfo.division || '—') + '</td><td></td></tr>' +
+        (hasComparison
+          ? '<tr class="total-row"><td>TOTAL</td><td class="num">' + escapeHtml(String(comparisonRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(comparisonTotalScored)) + '</td><td class="num">' + escapeHtml(comparisonAggregateInfo.sum != null ? String(comparisonAggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(comparisonAggregateInfo.division || '—') + '</td><td class="num">' + escapeHtml(String(academicRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(totalScored)) + '</td><td class="num">' + escapeHtml(aggregateInfo.sum != null ? String(aggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(aggregateInfo.division || '—') + '</td><td></td></tr>'
+          : '<tr class="total-row"><td>TOTAL</td><td class="num">' + escapeHtml(String(academicRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(totalScored)) + '</td><td class="num">' + escapeHtml(aggregateInfo.sum != null ? String(aggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(aggregateInfo.division || '—') + '</td><td></td></tr>') +
         '</tbody>' +
         '</table>' +
         '<div class="primary-grade-scale">' +
@@ -2215,17 +2245,22 @@
       rpYearCustom && rpYearCustom.style.display !== 'none' ? String(rpYearCustom.value || '').trim() : '';
     const reportYear = customYear || yearEl.value || String(new Date().getFullYear());
     const period = periodEl.value;
+    const comparisonPeriod = isPrimary && period === 'mid' ? 'begin' : isPrimary && period === 'end' ? 'mid' : '';
 
-    const [stuRes, comRes, marRes, headRes, ctRes] = await Promise.all([
+    const [stuRes, comRes, marRes, headRes, ctRes, comparisonMarRes] = await Promise.all([
       fetch(studentsUrl(reportYear)),
       fetch(commentsUrlForExport(term, period)),
       fetch(marksUrlForExport(term, period)),
       fetch(headCommentsUrlForExport(term, period)),
       fetch(classTeacherCommentsUrlForExport(term, period)),
+      comparisonPeriod ? fetch(marksUrlForExport(term, comparisonPeriod)) : Promise.resolve(null),
     ]);
     const roster = stuRes.ok ? await stuRes.json() : [];
     const allComments = comRes.ok ? await comRes.json() : [];
     const allMarks = marRes.ok ? await marRes.json() : [];
+    const comparisonMarks = comparisonMarRes && comparisonMarRes.ok
+      ? await comparisonMarRes.json().catch(function () { return []; })
+      : [];
     let allHead = headRes.ok ? await headRes.json().catch(function () { return []; }) : [];
     let allClassTeacher = ctRes.ok ? await ctRes.json().catch(function () { return []; }) : [];
     if (!Array.isArray(allHead)) allHead = [];
@@ -2306,10 +2341,14 @@
     const subjectCols = subjectColumnsFromBoth(fc, fm);
     const byC = {};
     const byM = {};
+    const comparisonByM = {};
     const headBy = {};
     const ctBy = {};
     fc.forEach(function (r) { byC[r.student_id + '\t' + r.subject] = r.body; });
     fm.forEach(function (r) { byM[r.student_id + '\t' + r.subject] = r; });
+    (Array.isArray(comparisonMarks) ? comparisonMarks : []).forEach(function (r) {
+      comparisonByM[r.student_id + '\t' + r.subject] = r;
+    });
     fh.forEach(function (r) { headBy[r.student_id] = r.body || ''; });
     fct.forEach(function (r) { ctBy[r.student_id] = r.body || ''; });
 
@@ -2323,7 +2362,7 @@
           .map(function (s) {
             return (
               '<div class="report-stack-item">' +
-              buildStudentReportHtml(s, subjectCols, byC, byM, ctBy, headBy, term, period, reportNextTerm, reportYear) +
+              buildStudentReportHtml(s, subjectCols, byC, byM, ctBy, headBy, term, period, reportNextTerm, reportYear, comparisonByM) +
               '</div>'
             );
           })
@@ -2340,7 +2379,8 @@
         term,
         period,
         reportNextTerm,
-        reportYear
+        reportYear,
+        comparisonByM
       );
     }
     applyReportScale(fontScale);
@@ -2594,6 +2634,7 @@
   let historyFilteredRoster = [];
   let historyByC = {};
   let historyByM = {};
+  let historyComparisonByM = {};
   let historyHeadBy = {};
   let historyCtBy = {};
   let historyTerm = 1;
@@ -2717,7 +2758,7 @@
     });
   }
 
-  function renderHistoryTemplate(roster, byC, byM, ctBy, headBy, term, period, year) {
+  function renderHistoryTemplate(roster, byC, byM, ctBy, headBy, term, period, year, comparisonByM) {
     if (!hrTemplate) return;
     if (!roster || !roster.length) {
       hrTemplate.innerHTML = '<p style="color: var(--muted); margin:0.2rem 0">No learners for this year in this class.</p>';
@@ -2729,7 +2770,7 @@
         .map(function (s) {
           return (
             '<div class="report-stack-item">' +
-            buildStudentReportHtml(s, [], byC, byM, ctBy, headBy, String(term), String(period), '', String(year)) +
+            buildStudentReportHtml(s, [], byC, byM, ctBy, headBy, String(term), String(period), '', String(year), comparisonByM) +
             '</div>'
           );
         })
@@ -2749,7 +2790,7 @@
           );
         });
     renderHistoryLearnerRows(historyFilteredRoster);
-    renderHistoryTemplate(historyFilteredRoster, historyByC, historyByM, historyCtBy, historyHeadBy, historyTerm, historyPeriod, historyYear);
+    renderHistoryTemplate(historyFilteredRoster, historyByC, historyByM, historyCtBy, historyHeadBy, historyTerm, historyPeriod, historyYear, historyComparisonByM);
     if (hrStatus) hrStatus.textContent = 'Found ' + String(historyFilteredRoster.length) + ' learner(s).';
   }
 
@@ -2758,6 +2799,7 @@
     const year = selectedHistoryYear();
     const term = Number(hrTerm.value || 1);
     const period = String(hrPeriod.value || 'mid');
+    const comparisonPeriod = isPrimary && period === 'mid' ? 'begin' : isPrimary && period === 'end' ? 'mid' : '';
     hrStatus.textContent = 'Loading...';
     hrMetricsBody.innerHTML = '';
     renderHistoryLearnerRows([]);
@@ -2769,31 +2811,37 @@
       historyFilteredRoster = historyRosterCache.slice();
       renderHistoryLearnerRows(historyFilteredRoster);
 
-      const [comRes, marRes, headRes, ctRes, valRes] = await Promise.all([
+      const [comRes, marRes, headRes, ctRes, valRes, comparisonMarRes] = await Promise.all([
         fetch(historyUrl('/api/comments', term, period, year)),
         fetch(historyUrl('/api/marks', term, period, year)),
         fetch(historyUrl('/api/head-comments', term, period, year)),
         fetch(historyUrl('/api/class-teacher-comments', term, period, year)),
         fetch(historyUrl('/api/report-validate', term, period, year)),
+        comparisonPeriod ? fetch(historyUrl('/api/marks', term, comparisonPeriod, year)) : Promise.resolve(null),
       ]);
       const rowsC = comRes.ok ? await comRes.json().catch(function () { return []; }) : [];
       const rowsM = marRes.ok ? await marRes.json().catch(function () { return []; }) : [];
       const rowsH = headRes.ok ? await headRes.json().catch(function () { return []; }) : [];
       const rowsCT = ctRes.ok ? await ctRes.json().catch(function () { return []; }) : [];
+      const comparisonRowsM = comparisonMarRes && comparisonMarRes.ok
+        ? await comparisonMarRes.json().catch(function () { return []; })
+        : [];
       const val = valRes.ok ? await valRes.json().catch(function () { return null; }) : null;
 
       historyByC = {};
       historyByM = {};
+      historyComparisonByM = {};
       historyHeadBy = {};
       historyCtBy = {};
       (rowsC || []).forEach(function (r) { historyByC[r.student_id + '\t' + r.subject] = r.body || ''; });
       (rowsM || []).forEach(function (r) { historyByM[r.student_id + '\t' + r.subject] = r; });
+      (comparisonRowsM || []).forEach(function (r) { historyComparisonByM[r.student_id + '\t' + r.subject] = r; });
       (rowsH || []).forEach(function (r) { historyHeadBy[r.student_id] = r.body || ''; });
       (rowsCT || []).forEach(function (r) { historyCtBy[r.student_id] = r.body || ''; });
       historyTerm = term;
       historyPeriod = period;
       historyYear = year;
-      renderHistoryTemplate(historyFilteredRoster, historyByC, historyByM, historyCtBy, historyHeadBy, historyTerm, historyPeriod, historyYear);
+      renderHistoryTemplate(historyFilteredRoster, historyByC, historyByM, historyCtBy, historyHeadBy, historyTerm, historyPeriod, historyYear, historyComparisonByM);
 
       const metrics = [];
       if (val) metrics.push({ label: 'Term ' + term + ' · ' + periodLabel(period), done: val.completeLearners || 0, total: val.totalLearners || 0 });
@@ -3610,7 +3658,8 @@
     }
 
     try {
-      const [comRes, marRes, headRes, ctRes, settingRes] = await Promise.all([
+      const comparisonPeriod = isPrimary && period === 'mid' ? 'begin' : isPrimary && period === 'end' ? 'mid' : '';
+      const [comRes, marRes, headRes, ctRes, settingRes, comparisonMarRes] = await Promise.all([
         fetch(urlWithYear(null, '/api/comments', { term: term, period: period })),
         fetch(urlWithYear(null, '/api/marks', { term: term, period: period })),
         fetch(urlWithYear(null, '/api/head-comments', { term: term, period: period })),
@@ -3623,9 +3672,15 @@
             return u.toString();
           })()
         ),
+        comparisonPeriod
+          ? fetch(urlWithYear(null, '/api/marks', { term: term, period: comparisonPeriod }))
+          : Promise.resolve(null),
       ]);
       const allComments = comRes.ok ? await comRes.json() : [];
       const allMarks = marRes.ok ? await marRes.json() : [];
+      const comparisonMarks = comparisonMarRes && comparisonMarRes.ok
+        ? await comparisonMarRes.json().catch(function () { return []; })
+        : [];
       let allHead = headRes.ok ? await headRes.json().catch(function () { return []; }) : [];
       let allClassTeacher = ctRes.ok ? await ctRes.json().catch(function () { return []; }) : [];
       if (!Array.isArray(allHead)) allHead = [];
@@ -3642,10 +3697,14 @@
       const subjectCols = subjectColumnsFromBoth(fc, fm);
       const byC = {};
       const byM = {};
+      const comparisonByM = {};
       const headBy = {};
       const ctBy = {};
       fc.forEach(function (r) { byC[r.student_id + '\t' + r.subject] = r.body; });
       fm.forEach(function (r) { byM[r.student_id + '\t' + r.subject] = r; });
+      (Array.isArray(comparisonMarks) ? comparisonMarks : []).forEach(function (r) {
+        comparisonByM[r.student_id + '\t' + r.subject] = r;
+      });
       fh.forEach(function (r) { headBy[r.student_id] = r.body || ''; });
       fct.forEach(function (r) { ctBy[r.student_id] = r.body || ''; });
       const nextTermBegins = period === 'end' ? reportSettings.nextTermBegins || '' : '';
@@ -3659,7 +3718,8 @@
         term,
         period,
         nextTermBegins,
-        year
+        year,
+        comparisonByM
       );
       const fontScale = reportSettings.fontScale != null ? Number(reportSettings.fontScale) : 1;
       applyReportScale(fontScale, targetEl);
