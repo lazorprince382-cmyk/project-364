@@ -961,6 +961,31 @@
     return { sum: sum, division: div };
   }
 
+  function normalizeExplorerCommentSignatures(root) {
+    if (!root) return;
+    root.querySelectorAll('.baby-bottom-comments').forEach(function (block) {
+      if (block.querySelector('.baby-comment-sign-row')) return;
+      const classComment = Array.prototype.find.call(block.children, function (el) {
+        return el.tagName === 'P' && !el.classList.contains('baby-next-term');
+      });
+      const oldHeadRow = block.querySelector(':scope > .baby-head-row');
+      const headComment = oldHeadRow && oldHeadRow.querySelector(':scope > p');
+      const signatures = oldHeadRow ? oldHeadRow.querySelectorAll('.baby-sign-row') : [];
+      if (!classComment || !headComment || signatures.length < 2) return;
+      const classEntry = document.createElement('div');
+      classEntry.className = 'baby-comment-sign-row';
+      block.insertBefore(classEntry, classComment);
+      classEntry.appendChild(classComment);
+      classEntry.appendChild(signatures[0]);
+      const headEntry = document.createElement('div');
+      headEntry.className = 'baby-comment-sign-row baby-head-row';
+      block.insertBefore(headEntry, oldHeadRow);
+      headEntry.appendChild(headComment);
+      headEntry.appendChild(signatures[1]);
+      oldHeadRow.remove();
+    });
+  }
+
   function buildDirectorReportHtml(student, classLevel, stream, term, period, byC, byM, ctBy, headBy, nextTermBegins) {
     const isPrimary = classLevel === 'primary1' || classLevel === 'primary2';
     const skillList = window.OCEAN_SKILL_SUBJECTS || [];
@@ -1088,6 +1113,7 @@
     outPrev.innerHTML = student
       ? buildDirectorReportHtml(student, cl, stream, term, period, byC, byM, ctBy, headBy, nextTermBegins)
       : '<p class="dir-muted">Select learner.</p>';
+    normalizeExplorerCommentSignatures(outPrev);
     status.textContent = 'Loaded.';
   }
 
@@ -1411,7 +1437,11 @@
     const staffForm = $('#dir-staff-form');
     if (staffForm) staffForm.reset();
     loadStaffTable();
-    alert('Account created. Share the email and password with the staff member.');
+    alert(
+      j.system_admin_activated
+        ? 'System admin account activated. It remains hidden from the staff directory.'
+        : 'Account created. Share the email and password with the staff member.'
+    );
   });
 
   $('#dir-export-csv').addEventListener('click', async () => {

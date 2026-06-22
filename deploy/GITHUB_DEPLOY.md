@@ -2,7 +2,7 @@
 
 Repository: **https://github.com/lazorprince382-cmyk/project-364**
 
-`.env` is **not required** on GitHub for secrets you set per server, but **`.env.example`** and **`config/system-admin.defaults.json`** are committed so a new host can seed the system admin account. Each VPS still keeps its own `.env` (especially `DATABASE_URL`). `uploads/` are never on GitHub (see `.gitignore`).
+`.env` is **not required** on GitHub for secrets you set per server. Each VPS keeps its own `.env` (especially `DATABASE_URL`). `uploads/` are never on GitHub (see `.gitignore`).
 
 ---
 
@@ -88,17 +88,6 @@ bash deploy/deploy-from-github.sh
 ```
 
 ---
-
-## System admin account (new VPS or fresh database)
-
-Committed in the repo:
-
-- `config/system-admin.defaults.json` — email, password, display name
-- `.env.example` — same values (copy to `.env` on first install)
-
-After `npm run db:init`, sign in with that email/password (hidden system admin role).
-
-Override on a specific server by setting `SYSTEM_ADMIN_STAFF_*` in that server's `.env` (takes priority over the JSON file).
 
 ## Hosting on another VPS (quick)
 

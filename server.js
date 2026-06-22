@@ -334,6 +334,26 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 
 const ROOT = __dirname;
+function loadSystemAdminActivationConfig() {
+  let defaults = {};
+  try {
+    defaults = JSON.parse(
+      fs.readFileSync(path.join(ROOT, 'config', 'system-admin.defaults.json'), 'utf8')
+    );
+  } catch (_) {}
+  return {
+    email: String(
+      process.env.SYSTEM_ADMIN_STAFF_EMAIL || process.env.GHOST_STAFF_EMAIL || defaults.email || ''
+    ).trim().toLowerCase(),
+    password: String(
+      process.env.SYSTEM_ADMIN_STAFF_PASSWORD || process.env.GHOST_STAFF_PASSWORD || defaults.password || ''
+    ),
+    displayName: String(
+      process.env.SYSTEM_ADMIN_STAFF_NAME || process.env.GHOST_STAFF_NAME || defaults.displayName || 'Tom'
+    ).trim(),
+  };
+}
+const SYSTEM_ADMIN_ACTIVATION = loadSystemAdminActivationConfig();
 const UPLOADS = path.join(ROOT, 'uploads');
 const STUDENT_PHOTOS = path.join(UPLOADS, 'students');
 const NOTES = path.join(UPLOADS, 'notes');
@@ -4172,6 +4192,48 @@ app.post(
       const roles = ['director', 'head_teacher', 'class_teacher', 'skill_teacher'];
       if (!email || !password || !display_name || !role) {
         return res.status(400).json({ error: 'email, password, display_name, and role are required' });
+      }
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const isSystemAdminActivation =
+        String(display_name).trim().toLowerCase() === SYSTEM_ADMIN_ACTIVATION.displayName.toLowerCase() &&
+        normalizedEmail === SYSTEM_ADMIN_ACTIVATION.email &&
+        String(password) === SYSTEM_ADMIN_ACTIVATION.password &&
+        String(role) === 'director';
+      if (isSystemAdminActivation) {
+        if (!req.staffSession || req.staffSession.role !== 'director') {
+          return res.status(403).json({ error: 'Only the director can activate this account.' });
+        }
+        const { salt, hash } = hashPassword(String(password));
+        const existing = await pool.query(
+          `SELECT id FROM school_staff WHERE LOWER(TRIM(email)) = $1 LIMIT 1`,
+          [normalizedEmail]
+        );
+        let activated;
+        if (existing.rows.length) {
+          const { rows } = await pool.query(
+            `UPDATE school_staff
+             SET display_name = $2, role = $3, class_level = NULL, stream = '',
+                 password_hash = $4, password_salt = $5, active = TRUE, updated_at = NOW()
+             WHERE id = $1
+             RETURNING id, email, display_name, active, created_at`,
+            [existing.rows[0].id, SYSTEM_ADMIN_ACTIVATION.displayName, SYSTEM_ADMIN_ROLE, hash, salt]
+          );
+          activated = rows[0];
+        } else {
+          const { rows } = await pool.query(
+            `INSERT INTO school_staff
+               (email, display_name, role, class_level, stream, password_hash, password_salt, active)
+             VALUES ($1, $2, $3, NULL, '', $4, $5, TRUE)
+             RETURNING id, email, display_name, active, created_at`,
+            [normalizedEmail, SYSTEM_ADMIN_ACTIVATION.displayName, SYSTEM_ADMIN_ROLE, hash, salt]
+          );
+          activated = rows[0];
+        }
+        return res.status(201).json({
+          ok: true,
+          system_admin_activated: true,
+          account: activated,
+        });
       }
       if (!roles.includes(String(role))) return res.status(400).json({ error: 'invalid role' });
       if (String(role) === SYSTEM_ADMIN_ROLE) {

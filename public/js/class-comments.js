@@ -1886,6 +1886,31 @@
     return periodWord + ' ' + termWord + ' ' + String(reportYear || new Date().getFullYear());
   }
 
+  function primaryGradeScaleHtml() {
+    const bands = normalizeBandsClient(gradingBands)
+      .slice()
+      .sort(function (a, b) { return b.max - a.max; });
+    if (!bands.length) return '';
+    const rows = [];
+    for (let i = 0; i < bands.length; i += 3) {
+      const cells = [];
+      bands.slice(i, i + 3).forEach(function (band) {
+        cells.push(
+          '<td>' + escapeHtml(String(band.min) + ' – ' + String(band.max)) + '</td>' +
+          '<td title="' + escapeHtml(band.remark || '') + '">' + escapeHtml(band.agg || '') + '</td>'
+        );
+      });
+      while (cells.length < 3) cells.push('<td></td><td></td>');
+      rows.push('<tr>' + cells.join('') + '</tr>');
+    }
+    return (
+      '<div class="primary-grade-scale">' +
+      '<h5>GRADING SCALE</h5>' +
+      '<table><tbody>' + rows.join('') + '</tbody></table>' +
+      '</div>'
+    );
+  }
+
   function buildStudentReportHtml(student, subjectCols, byC, byM, ctBy, headBy, term, period, nextTermBegins, reportYear, comparisonByM) {
     const classLabel = labelClass();
     if (isPrimary) {
@@ -1902,12 +1927,16 @@
       const secondPeriodLabel = period === 'end' ? 'End Of Term' : 'Mid Term';
       function reportMarkRow(map, sub) {
         const m = (map && map[student.id + '\t' + sub]) || {};
+        const scored = m.marks_scored != null ? Number(m.marks_scored) : null;
+        const currentGrade = Number.isFinite(scored) && gradingBands.length
+          ? gradeFromPercentClient(scored, gradingBands)
+          : { agg: m.agg || '', remark: m.remark || '' };
         return {
           subject: sub,
           fullMarks: 100,
-          scored: m.marks_scored != null ? Number(m.marks_scored) : null,
-          agg: m.agg || '',
-          remark: m.remark || '',
+          scored: scored,
+          agg: currentGrade.agg || '',
+          remark: currentGrade.remark || '',
           initials: m.initials || '',
         };
       }
@@ -1998,14 +2027,7 @@
           : '<tr class="total-row"><td>TOTAL</td><td class="num">' + escapeHtml(String(academicRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(totalScored)) + '</td><td class="num">' + escapeHtml(aggregateInfo.sum != null ? String(aggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(aggregateInfo.division || '—') + '</td><td></td></tr>') +
         '</tbody>' +
         '</table>' +
-        '<div class="primary-grade-scale">' +
-        '<h5>GRADING SCALE</h5>' +
-        '<table><tbody>' +
-        '<tr><td>90 – 100</td><td>D1</td><td>60 – 69</td><td>C4</td><td>40 – 44</td><td>P8</td></tr>' +
-        '<tr><td>80 – 89</td><td>D2</td><td>55 – 59</td><td>C5</td><td>45 – 49</td><td>P7</td></tr>' +
-        '<tr><td>70 – 79</td><td>C3</td><td>50 – 54</td><td>C6</td><td>0 – 39</td><td>F9</td></tr>' +
-        '</tbody></table>' +
-        '</div>' +
+        primaryGradeScaleHtml() +
         '<h5 class="primary-skill-title">Skills</h5>' +
         '<table class="primary-skill-table"><tbody>' + skillsRowsHtml + '</tbody></table>' +
         '</div>' +
@@ -2211,14 +2233,14 @@
       '</tbody></table>' +
       divisionLine +
       '<div class="report-comments">' +
-      '<p><strong>Class Teacher\'s comment:</strong> ' +
+      '<div class="report-comment-entry"><p><strong>Class Teacher\'s comment:</strong> ' +
       escapeHtml(ctBy[student.id] || '') +
-      '</p>' +
-      '<p><strong>' +
+      '</p><div class="report-sign-row"><span>Signature:</span><span class="sig-line"></span></div></div>' +
+      '<div class="report-comment-entry"><p><strong>' +
       escapeHtml(isPrimary ? "Head Teacher's comment" : "Head Caregiver's comment") +
       ':</strong> ' +
       escapeHtml(headBy[student.id] || '') +
-      '</p>' +
+      '</p><div class="report-sign-row"><span>Signature:</span><span class="sig-line"></span></div></div>' +
       (period === 'end'
         ? '<p><strong>Next term begins:</strong> ' +
           escapeHtml(nextTermBegins || '—') +
@@ -3613,7 +3635,8 @@
 
   window.__oceanReportsInit = function () {
     populateReportYearSelect(new Date().getFullYear());
-    return fetchSchoolReportingContext()
+    return loadGradingBands()
+      .then(fetchSchoolReportingContext)
       .then(finishReportsInit)
       .catch(function () {
         return finishReportsInit(null);
@@ -3624,6 +3647,7 @@
     const student = opts && opts.student;
     const targetEl = opts && opts.targetEl;
     if (!student || !targetEl) return;
+    if (!gradingBands.length) await loadGradingBands();
     const classLevel = String(opts.classLevel || student.class_level || '').trim();
     const stream = opts.stream != null ? String(opts.stream).trim() : String(student.stream || '').trim();
     const term = String(opts.term || '1');
@@ -3751,6 +3775,8 @@
   window.addEventListener('ocean-grading-saved', function (ev) {
     gradingBands = normalizeBandsClient(ev.detail && ev.detail.bands ? ev.detail.bands : []);
     if (isMarksSubject()) refreshMarksSystemOut();
+    const reportPanel = document.getElementById('panel-reports');
+    if (reportPanel && reportPanel.classList.contains('active')) refreshReportTemplate();
   });
 
   window.addEventListener('ocean-profile-updated', function () {

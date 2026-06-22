@@ -14,11 +14,9 @@ School management app — classes, learners, marks, comments, staff messaging, a
 cp .env.example .env
 # Edit DATABASE_URL for your PostgreSQL server
 npm install
-npm run db:init   # creates schema + default staff + system admin (see config/system-admin.defaults.json)
+npm run db:init   # creates the schema and default staff accounts
 npm start
 ```
-
-**System admin login** (hidden from staff lists): credentials are in `config/system-admin.defaults.json` and `.env.example`. Override with `SYSTEM_ADMIN_STAFF_*` in `.env` if needed.
 
 Open http://localhost:3000
 

@@ -219,7 +219,6 @@ pool
   .then(() => pool.query(migrateClassWeeklyGoalsSql))
   .then(() => pool.query(migrateSystemAdminRoleSql))
   .then(() => seedDefaultStaffAccounts())
-  .then(() => seedSystemAdminStaffAccount())
   .then(() => {
     console.log('Schema applied successfully.');
     return pool.end();
