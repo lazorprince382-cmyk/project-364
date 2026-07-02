@@ -1035,6 +1035,14 @@
       if (settings.fontScale != null) card.style.setProperty('--rp-font-scale', String(settings.fontScale));
       if (layout.badgeScale != null) card.style.setProperty('--rp-badge-scale', String(layout.badgeScale));
       if (layout.commentGapMm != null) card.style.setProperty('--rp-comment-gap-mm', String(layout.commentGapMm));
+      if (layout.metaScale != null) card.style.setProperty('--rp-meta-scale', String(layout.metaScale));
+      if (layout.metaOffsetIn != null) card.style.setProperty('--rp-meta-offset-in', String(layout.metaOffsetIn));
+      if (layout.metaWidthIn != null) card.style.setProperty('--rp-meta-width-in', String(layout.metaWidthIn));
+      if (layout.photoScale != null) card.style.setProperty('--rp-photo-scale', String(layout.photoScale));
+      if (layout.photoOffsetXIn != null) card.style.setProperty('--rp-photo-offset-x-in', String(layout.photoOffsetXIn));
+      if (layout.photoOffsetYIn != null) card.style.setProperty('--rp-photo-offset-y-in', String(layout.photoOffsetYIn));
+      if (layout.headingScale != null) card.style.setProperty('--rp-heading-scale', String(layout.headingScale));
+      if (layout.commentFontScale != null) card.style.setProperty('--rp-comment-scale', String(layout.commentFontScale));
       const bodyBlock = card.querySelector('.baby-subjects-grid, .primary-report-body');
       if (bodyBlock) {
         bodyBlock.style.transformOrigin = 'top left';

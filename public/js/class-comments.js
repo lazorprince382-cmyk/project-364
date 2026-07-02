@@ -1504,6 +1504,14 @@
       commentsOffsetY: 0,
       badgeScale: 1,
       commentGapMm: 4,
+      metaScale: 1,
+      metaOffsetIn: 0,
+      metaWidthIn: 4.7,
+      photoScale: 1,
+      photoOffsetXIn: 0,
+      photoOffsetYIn: 0,
+      headingScale: 1,
+      commentFontScale: 1,
     };
   }
 
@@ -1537,6 +1545,14 @@
       commentsOffsetY: clampTemplateOffset(src.commentsOffsetY),
       badgeScale: clampBadgeScale(src.badgeScale),
       commentGapMm: clampCommentGapMm(src.commentGapMm),
+      metaScale: clampSectionFontScale(src.metaScale),
+      metaOffsetIn: clampMetaOffsetIn(src.metaOffsetIn),
+      metaWidthIn: clampMetaWidthIn(src.metaWidthIn),
+      photoScale: clampPhotoScale(src.photoScale),
+      photoOffsetXIn: clampPhotoOffsetXIn(src.photoOffsetXIn),
+      photoOffsetYIn: clampPhotoOffsetYIn(src.photoOffsetYIn),
+      headingScale: clampSectionFontScale(src.headingScale),
+      commentFontScale: clampSectionFontScale(src.commentFontScale),
     };
   }
 
@@ -1550,6 +1566,42 @@
     const n = Number(v);
     if (!Number.isFinite(n)) return 4;
     return Math.max(0, Math.min(24, n));
+  }
+
+  function clampSectionFontScale(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 1;
+    return Math.max(0.75, Math.min(1.45, n));
+  }
+
+  function clampMetaOffsetIn(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(-2, Math.min(2, n));
+  }
+
+  function clampMetaWidthIn(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 4.7;
+    return Math.max(3, Math.min(6.2, n));
+  }
+
+  function clampPhotoScale(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 1;
+    return Math.max(0.7, Math.min(1.5, n));
+  }
+
+  function clampPhotoOffsetXIn(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(-2, Math.min(2, n));
+  }
+
+  function clampPhotoOffsetYIn(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(-1.5, Math.min(1.5, n));
   }
 
   function normalizeReportSettingsLocal(raw) {
@@ -1581,6 +1633,12 @@
 
   function reportFontScaleLabel(scale) {
     return String(Math.round(Number(scale || 1) * 100)) + '%';
+  }
+
+  function reportInchLabel(value) {
+    const n = Number(value);
+    const safe = Number.isFinite(n) ? n : 0;
+    return safe.toFixed(1) + 'in';
   }
 
   function currentReportPreviewScale() {
@@ -1643,6 +1701,14 @@
       }
       card.style.setProperty('--rp-badge-scale', String(normalized.layout.badgeScale || 1));
       card.style.setProperty('--rp-comment-gap-mm', String(normalized.layout.commentGapMm != null ? normalized.layout.commentGapMm : 4));
+      card.style.setProperty('--rp-meta-scale', String(normalized.layout.metaScale || 1));
+      card.style.setProperty('--rp-meta-offset-in', String(normalized.layout.metaOffsetIn || 0));
+      card.style.setProperty('--rp-meta-width-in', String(normalized.layout.metaWidthIn || 4.7));
+      card.style.setProperty('--rp-photo-scale', String(normalized.layout.photoScale || 1));
+      card.style.setProperty('--rp-photo-offset-x-in', String(normalized.layout.photoOffsetXIn || 0));
+      card.style.setProperty('--rp-photo-offset-y-in', String(normalized.layout.photoOffsetYIn || 0));
+      card.style.setProperty('--rp-heading-scale', String(normalized.layout.headingScale || 1));
+      card.style.setProperty('--rp-comment-scale', String(normalized.layout.commentFontScale || 1));
       const commentsBlock = card.querySelector('.baby-bottom-comments, .primary-comments, .report-comments');
       if (commentsBlock) {
         commentsBlock.style.transformOrigin = 'top left';
@@ -1665,6 +1731,22 @@
     if (rpCommentsOffsetY) rpCommentsOffsetY.value = String(normalized.commentsOffsetY || 0);
     if (rpBadgeRange) rpBadgeRange.value = String(normalized.badgeScale || 1);
     if (rpBadgeRangeValue) rpBadgeRangeValue.textContent = reportFontScaleLabel(normalized.badgeScale || 1);
+    if (rpMetaRange) rpMetaRange.value = String(normalized.metaScale || 1);
+    if (rpMetaRangeValue) rpMetaRangeValue.textContent = reportFontScaleLabel(normalized.metaScale || 1);
+    if (rpMetaXRange) rpMetaXRange.value = String(normalized.metaOffsetIn || 0);
+    if (rpMetaXValue) rpMetaXValue.textContent = reportInchLabel(normalized.metaOffsetIn || 0);
+    if (rpMetaWidthRange) rpMetaWidthRange.value = String(normalized.metaWidthIn || 4.7);
+    if (rpMetaWidthValue) rpMetaWidthValue.textContent = reportInchLabel(normalized.metaWidthIn || 4.7);
+    if (rpPhotoSizeRange) rpPhotoSizeRange.value = String(normalized.photoScale || 1);
+    if (rpPhotoSizeValue) rpPhotoSizeValue.textContent = reportFontScaleLabel(normalized.photoScale || 1);
+    if (rpPhotoXRange) rpPhotoXRange.value = String(normalized.photoOffsetXIn || 0);
+    if (rpPhotoXValue) rpPhotoXValue.textContent = reportInchLabel(normalized.photoOffsetXIn || 0);
+    if (rpPhotoYRange) rpPhotoYRange.value = String(normalized.photoOffsetYIn || 0);
+    if (rpPhotoYValue) rpPhotoYValue.textContent = reportInchLabel(normalized.photoOffsetYIn || 0);
+    if (rpHeadingRange) rpHeadingRange.value = String(normalized.headingScale || 1);
+    if (rpHeadingRangeValue) rpHeadingRangeValue.textContent = reportFontScaleLabel(normalized.headingScale || 1);
+    if (rpCommentsFontRange) rpCommentsFontRange.value = String(normalized.commentFontScale || 1);
+    if (rpCommentsFontRangeValue) rpCommentsFontRangeValue.textContent = reportFontScaleLabel(normalized.commentFontScale || 1);
     if (rpCommentGapRange) rpCommentGapRange.value = String(normalized.commentGapMm != null ? normalized.commentGapMm : 4);
     if (rpCommentGapValue) rpCommentGapValue.textContent = String(normalized.commentGapMm != null ? normalized.commentGapMm : 4) + 'mm';
   }
@@ -2668,6 +2750,22 @@
   const rpBadgeRangeValue = document.getElementById('rp-badge-range-value');
   const rpBadgeDec = document.getElementById('rp-badge-dec');
   const rpBadgeInc = document.getElementById('rp-badge-inc');
+  const rpMetaRange = document.getElementById('rp-meta-range');
+  const rpMetaRangeValue = document.getElementById('rp-meta-range-value');
+  const rpMetaXRange = document.getElementById('rp-meta-x-range');
+  const rpMetaXValue = document.getElementById('rp-meta-x-value');
+  const rpMetaWidthRange = document.getElementById('rp-meta-width-range');
+  const rpMetaWidthValue = document.getElementById('rp-meta-width-value');
+  const rpPhotoSizeRange = document.getElementById('rp-photo-size-range');
+  const rpPhotoSizeValue = document.getElementById('rp-photo-size-value');
+  const rpPhotoXRange = document.getElementById('rp-photo-x-range');
+  const rpPhotoXValue = document.getElementById('rp-photo-x-value');
+  const rpPhotoYRange = document.getElementById('rp-photo-y-range');
+  const rpPhotoYValue = document.getElementById('rp-photo-y-value');
+  const rpHeadingRange = document.getElementById('rp-heading-range');
+  const rpHeadingRangeValue = document.getElementById('rp-heading-range-value');
+  const rpCommentsFontRange = document.getElementById('rp-comments-font-range');
+  const rpCommentsFontRangeValue = document.getElementById('rp-comments-font-range-value');
   const rpCommentGapRange = document.getElementById('rp-comment-gap-range');
   const rpCommentGapValue = document.getElementById('rp-comment-gap-value');
   const rpCommentGapDec = document.getElementById('rp-comment-gap-dec');
@@ -2726,6 +2824,7 @@
   const rpLayoutReset = document.getElementById('rp-layout-reset');
   const rpSubjectOrderWrap = document.getElementById('rp-subject-order-wrap');
   const rpSubjectOrderList = document.getElementById('rp-subject-order-list');
+  let reportSettingsSaveSeq = 0;
 
   function syncReportCustomizeLabels() {
     const subjectXLabel = isPrimaryReportClass() ? 'Main report block X' : 'Subject pictures X';
@@ -3265,6 +3364,7 @@
   }
 
   async function saveReportSettingsPatch(patch) {
+    const seq = ++reportSettingsSaveSeq;
     const current = await getCurrentReportSettings();
     const merged = mergeReportSettingsLocal(current, patch || {});
     const payload = {
@@ -3285,8 +3385,9 @@
     const saved = await res.json().catch(function () {
       return null;
     });
-    currentReportSettings = normalizeReportSettingsLocal(saved && saved.ok ? saved : merged);
-    return currentReportSettings;
+    const normalized = normalizeReportSettingsLocal(saved && saved.ok ? saved : merged);
+    if (seq === reportSettingsSaveSeq) currentReportSettings = normalized;
+    return normalized;
   }
 
   function renderReportSubjectOrderEditor() {
@@ -3372,6 +3473,14 @@
         commentsOffsetX: rpCommentsOffsetX ? Number(rpCommentsOffsetX.value || 0) : base.layout.commentsOffsetX,
         commentsOffsetY: rpCommentsOffsetY ? Number(rpCommentsOffsetY.value || 0) : base.layout.commentsOffsetY,
         badgeScale: rpBadgeRange ? Number(rpBadgeRange.value || 1) : base.layout.badgeScale,
+        metaScale: rpMetaRange ? Number(rpMetaRange.value || 1) : base.layout.metaScale,
+        metaOffsetIn: rpMetaXRange ? Number(rpMetaXRange.value || 0) : base.layout.metaOffsetIn,
+        metaWidthIn: rpMetaWidthRange ? Number(rpMetaWidthRange.value || 4.7) : base.layout.metaWidthIn,
+        photoScale: rpPhotoSizeRange ? Number(rpPhotoSizeRange.value || 1) : base.layout.photoScale,
+        photoOffsetXIn: rpPhotoXRange ? Number(rpPhotoXRange.value || 0) : base.layout.photoOffsetXIn,
+        photoOffsetYIn: rpPhotoYRange ? Number(rpPhotoYRange.value || 0) : base.layout.photoOffsetYIn,
+        headingScale: rpHeadingRange ? Number(rpHeadingRange.value || 1) : base.layout.headingScale,
+        commentFontScale: rpCommentsFontRange ? Number(rpCommentsFontRange.value || 1) : base.layout.commentFontScale,
         commentGapMm: rpCommentGapRange
           ? Number(rpCommentGapRange.value)
           : base.layout.commentGapMm,
@@ -3386,6 +3495,14 @@
     if (rpFontRange && rpFontRange.value !== String(draft.fontScale)) rpFontRange.value = String(draft.fontScale);
     if (rpFontToolbarRange && rpFontToolbarRange.value !== String(draft.fontScale)) rpFontToolbarRange.value = String(draft.fontScale);
     if (rpBadgeRangeValue) rpBadgeRangeValue.textContent = reportFontScaleLabel(draft.layout.badgeScale || 1);
+    if (rpMetaRangeValue) rpMetaRangeValue.textContent = reportFontScaleLabel(draft.layout.metaScale || 1);
+    if (rpMetaXValue) rpMetaXValue.textContent = reportInchLabel(draft.layout.metaOffsetIn || 0);
+    if (rpMetaWidthValue) rpMetaWidthValue.textContent = reportInchLabel(draft.layout.metaWidthIn || 4.7);
+    if (rpPhotoSizeValue) rpPhotoSizeValue.textContent = reportFontScaleLabel(draft.layout.photoScale || 1);
+    if (rpPhotoXValue) rpPhotoXValue.textContent = reportInchLabel(draft.layout.photoOffsetXIn || 0);
+    if (rpPhotoYValue) rpPhotoYValue.textContent = reportInchLabel(draft.layout.photoOffsetYIn || 0);
+    if (rpHeadingRangeValue) rpHeadingRangeValue.textContent = reportFontScaleLabel(draft.layout.headingScale || 1);
+    if (rpCommentsFontRangeValue) rpCommentsFontRangeValue.textContent = reportFontScaleLabel(draft.layout.commentFontScale || 1);
     if (rpCommentGapValue) rpCommentGapValue.textContent = String(draft.layout.commentGapMm) + 'mm';
     syncReportOffsetInputs(draft.layout);
     applyReportScale(draft.fontScale);
@@ -3412,7 +3529,7 @@
     });
   }
 
-  [rpFontRange, rpFontToolbarRange, rpSubjectOffsetX, rpSubjectOffsetY, rpCommentsOffsetX, rpCommentsOffsetY, rpBadgeRange, rpCommentGapRange].forEach(function (el) {
+  [rpFontRange, rpFontToolbarRange, rpSubjectOffsetX, rpSubjectOffsetY, rpCommentsOffsetX, rpCommentsOffsetY, rpBadgeRange, rpMetaRange, rpMetaXRange, rpMetaWidthRange, rpPhotoSizeRange, rpPhotoXRange, rpPhotoYRange, rpHeadingRange, rpCommentsFontRange, rpCommentGapRange].forEach(function (el) {
     if (!el) return;
     el.addEventListener('input', previewReportTemplateControls);
   });
@@ -3444,11 +3561,19 @@
         if (ctx.flash) ctx.flash('Could not save template layout.', false);
         return;
       }
+      const finalSettings = mergeReportSettingsLocal(saved || draft, {
+        fontScale: draft.fontScale,
+        fontFamily: draft.fontFamily,
+        layout: draft.layout,
+      });
+      currentReportSettings = finalSettings;
       if (ctx.flash) ctx.flash('Template layout saved for this class.', true);
-      syncReportCustomizePanel(saved || draft);
+      syncReportCustomizePanel(finalSettings);
       await refreshReportTemplate();
-      syncReportCustomizePanel(saved || draft);
-      applyReportTemplateCustomization(saved || draft);
+      currentReportSettings = finalSettings;
+      syncReportCustomizePanel(finalSettings);
+      applyReportScale(finalSettings.fontScale);
+      applyReportTemplateCustomization(finalSettings);
     });
   }
 
@@ -3526,6 +3651,18 @@
       }
     });
   }
+  [rpMetaRange, rpMetaXRange, rpMetaWidthRange, rpPhotoSizeRange, rpPhotoXRange, rpPhotoYRange, rpHeadingRange, rpCommentsFontRange].forEach(function (el) {
+    if (!el) return;
+    el.addEventListener('change', async function () {
+      const draft = currentReportTemplateDraft();
+      try {
+        await saveReportSettingsPatch({ layout: draft.layout });
+        currentReportSettings = mergeReportSettingsLocal(currentReportSettings || {}, { layout: draft.layout });
+      } catch (_) {
+        if (ctx.flash) ctx.flash('Could not save section font size.', false);
+      }
+    });
+  });
   async function nudgeReportCommentGap(delta) {
     const draft = currentReportTemplateDraft();
     const n = clampCommentGapMm(Number(draft.layout.commentGapMm) + delta);

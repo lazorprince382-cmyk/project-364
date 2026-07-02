@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Class dashboard — THE OCEAN OF KNOWLEDGE SCHOOL</title>
     <link rel="stylesheet" href="/css/main.css" />
-    <link rel="stylesheet" href="/css/dashboard-app.css?v=20260702b" />
+    <link rel="stylesheet" href="/css/dashboard-app.css?v=20260702h" />
     <link rel="stylesheet" href="/css/clear-ocean-ui.css?v=20260531a" />
     <link rel="stylesheet" href="/css/class-page1.css?v=20260528e" />
     <link rel="stylesheet" href="/css/image-crop-modal.css?v=20260604a" />
@@ -719,59 +719,138 @@
               <button type="button" class="btn" id="rp-layout-reset">Restore defaults</button>
             </div>
           </div>
-          <div class="report-customize-grid">
-            <div class="report-customize-field">
-              <label for="rp-font-family">Font style</label>
-              <select id="rp-font-family">
-                <option value="default">Default school font</option>
-                <option value="calibri">Calibri / Segoe UI</option>
-                <option value="georgia">Georgia</option>
-                <option value="verdana">Verdana</option>
-                <option value="trebuchet">Trebuchet MS</option>
-                <option value="times">Times New Roman</option>
-              </select>
-            </div>
-            <div class="report-customize-field report-customize-field--wide">
-              <label for="rp-font-range">Font size</label>
-              <div class="report-range-row">
-                <input id="rp-font-range" type="range" min="0.8" max="1.6" step="0.05" value="1" />
-                <span id="rp-font-range-value" class="report-range-value">100%</span>
+          <div class="report-customize-sections">
+            <section class="report-control-group report-control-group--compact" aria-label="Text controls">
+              <h5>Text</h5>
+              <div class="report-customize-grid">
+                <div class="report-customize-field">
+                  <label for="rp-font-family">Font style</label>
+                  <select id="rp-font-family">
+                    <option value="default">Default school font</option>
+                    <option value="calibri">Calibri / Segoe UI</option>
+                    <option value="georgia">Georgia</option>
+                    <option value="verdana">Verdana</option>
+                    <option value="trebuchet">Trebuchet MS</option>
+                    <option value="times">Times New Roman</option>
+                  </select>
+                </div>
+                <div class="report-customize-field">
+                  <label for="rp-font-range">Main report size</label>
+                  <div class="report-range-row">
+                    <input id="rp-font-range" type="range" min="0.8" max="1.6" step="0.05" value="1" />
+                    <span id="rp-font-range-value" class="report-range-value">100%</span>
+                  </div>
+                </div>
+                <div class="report-customize-field">
+                  <label for="rp-heading-range">Motto / term / report size</label>
+                  <div class="report-range-row">
+                    <input id="rp-heading-range" type="range" min="0.75" max="1.45" step="0.05" value="1" />
+                    <span id="rp-heading-range-value" class="report-range-value">100%</span>
+                  </div>
+                </div>
+                <div class="report-customize-field">
+                  <label for="rp-comments-font-range">Comments font size</label>
+                  <div class="report-range-row">
+                    <input id="rp-comments-font-range" type="range" min="0.75" max="1.45" step="0.05" value="1" />
+                    <span id="rp-comments-font-range-value" class="report-range-value">100%</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div class="report-customize-field report-customize-field--wide">
-              <label for="rp-badge-range">School badge size</label>
-              <div class="report-range-row">
-                <button type="button" class="btn" id="rp-badge-dec" title="Decrease school badge">-</button>
-                <input id="rp-badge-range" type="range" min="0.7" max="1.5" step="0.05" value="1" />
-                <span id="rp-badge-range-value" class="report-range-value">100%</span>
-                <button type="button" class="btn" id="rp-badge-inc" title="Increase school badge">+</button>
+            </section>
+
+            <section class="report-control-group" aria-label="Header details controls">
+              <h5>Name details</h5>
+              <div class="report-customize-grid">
+                <div class="report-customize-field">
+                  <label for="rp-meta-range">Name / class / reg size</label>
+                  <div class="report-range-row">
+                    <input id="rp-meta-range" type="range" min="0.75" max="1.45" step="0.05" value="1" />
+                    <span id="rp-meta-range-value" class="report-range-value">100%</span>
+                  </div>
+                </div>
+                <div class="report-customize-field">
+                  <label for="rp-meta-x-range">Left / right</label>
+                  <div class="report-range-row">
+                    <input id="rp-meta-x-range" type="range" min="-2" max="2" step="0.1" value="0" />
+                    <span id="rp-meta-x-value" class="report-range-value">0.0in</span>
+                  </div>
+                </div>
+                <div class="report-customize-field">
+                  <label for="rp-meta-width-range">Width</label>
+                  <div class="report-range-row">
+                    <input id="rp-meta-width-range" type="range" min="3" max="6.2" step="0.1" value="4.7" />
+                    <span id="rp-meta-width-value" class="report-range-value">4.7in</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div class="report-customize-field report-customize-field--wide">
-              <label for="rp-comment-gap-range">Comment gap</label>
-              <div class="report-range-row">
-                <button type="button" class="btn" id="rp-comment-gap-dec" title="Reduce space between comments">-</button>
-                <input id="rp-comment-gap-range" type="range" min="0" max="24" step="1" value="4" />
-                <span id="rp-comment-gap-value" class="report-range-value">4mm</span>
-                <button type="button" class="btn" id="rp-comment-gap-inc" title="Increase space between comments">+</button>
+            </section>
+
+            <section class="report-control-group" aria-label="Photo and badge controls">
+              <h5>Photo and badge</h5>
+              <div class="report-customize-grid">
+                <div class="report-customize-field">
+                  <label for="rp-photo-size-range">Passport photo size</label>
+                  <div class="report-range-row">
+                    <input id="rp-photo-size-range" type="range" min="0.7" max="1.5" step="0.05" value="1" />
+                    <span id="rp-photo-size-value" class="report-range-value">100%</span>
+                  </div>
+                </div>
+                <div class="report-customize-field">
+                  <label for="rp-photo-x-range">Photo left / right</label>
+                  <div class="report-range-row">
+                    <input id="rp-photo-x-range" type="range" min="-2" max="2" step="0.1" value="0" />
+                    <span id="rp-photo-x-value" class="report-range-value">0.0in</span>
+                  </div>
+                </div>
+                <div class="report-customize-field">
+                  <label for="rp-photo-y-range">Photo up / down</label>
+                  <div class="report-range-row">
+                    <input id="rp-photo-y-range" type="range" min="-1.5" max="1.5" step="0.1" value="0" />
+                    <span id="rp-photo-y-value" class="report-range-value">0.0in</span>
+                  </div>
+                </div>
+                <div class="report-customize-field">
+                  <label for="rp-badge-range">School badge size</label>
+                  <div class="report-range-row">
+                    <button type="button" class="btn" id="rp-badge-dec" title="Decrease school badge">-</button>
+                    <input id="rp-badge-range" type="range" min="0.7" max="1.5" step="0.05" value="1" />
+                    <span id="rp-badge-range-value" class="report-range-value">100%</span>
+                    <button type="button" class="btn" id="rp-badge-inc" title="Increase school badge">+</button>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div class="report-customize-field">
-              <label id="rp-subject-offset-x-label" for="rp-subject-offset-x">Subject pictures X</label>
-              <input id="rp-subject-offset-x" type="number" min="-160" max="160" step="2" value="0" />
-            </div>
-            <div class="report-customize-field">
-              <label id="rp-subject-offset-y-label" for="rp-subject-offset-y">Subject pictures Y</label>
-              <input id="rp-subject-offset-y" type="number" min="-160" max="160" step="2" value="0" />
-            </div>
-            <div class="report-customize-field">
-              <label for="rp-comments-offset-x">Comments block X</label>
-              <input id="rp-comments-offset-x" type="number" min="-160" max="160" step="2" value="0" />
-            </div>
-            <div class="report-customize-field">
-              <label for="rp-comments-offset-y">Comments block Y</label>
-              <input id="rp-comments-offset-y" type="number" min="-160" max="160" step="2" value="0" />
-            </div>
+            </section>
+
+            <section class="report-control-group" aria-label="Position and spacing controls">
+              <h5>Blocks and spacing</h5>
+              <div class="report-customize-grid">
+                <div class="report-customize-field">
+                  <label for="rp-comment-gap-range">Comment gap</label>
+                  <div class="report-range-row">
+                    <button type="button" class="btn" id="rp-comment-gap-dec" title="Reduce space between comments">-</button>
+                    <input id="rp-comment-gap-range" type="range" min="0" max="24" step="1" value="4" />
+                    <span id="rp-comment-gap-value" class="report-range-value">4mm</span>
+                    <button type="button" class="btn" id="rp-comment-gap-inc" title="Increase space between comments">+</button>
+                  </div>
+                </div>
+                <div class="report-customize-field report-customize-field--number">
+                  <label id="rp-subject-offset-x-label" for="rp-subject-offset-x">Subject pictures X</label>
+                  <input id="rp-subject-offset-x" type="number" min="-160" max="160" step="2" value="0" />
+                </div>
+                <div class="report-customize-field report-customize-field--number">
+                  <label id="rp-subject-offset-y-label" for="rp-subject-offset-y">Subject pictures Y</label>
+                  <input id="rp-subject-offset-y" type="number" min="-160" max="160" step="2" value="0" />
+                </div>
+                <div class="report-customize-field report-customize-field--number">
+                  <label for="rp-comments-offset-x">Comments block X</label>
+                  <input id="rp-comments-offset-x" type="number" min="-160" max="160" step="2" value="0" />
+                </div>
+                <div class="report-customize-field report-customize-field--number">
+                  <label for="rp-comments-offset-y">Comments block Y</label>
+                  <input id="rp-comments-offset-y" type="number" min="-160" max="160" step="2" value="0" />
+                </div>
+              </div>
+            </section>
           </div>
           <div id="rp-subject-order-wrap" class="report-customize-order">
             <label>Subject picture order</label>
@@ -1088,6 +1167,6 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="/js/comment-quick-suggestions.js?v=20260702a"></script>
-    <script src="/js/class-comments.js?v=20260702b"></script>
+    <script src="/js/class-comments.js?v=20260702h"></script>
   </body>
 </html>

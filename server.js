@@ -4897,6 +4897,14 @@ app.get(
       commentsOffsetY: 0,
       badgeScale: 1,
       commentGapMm: 4,
+      metaScale: 1,
+      metaOffsetIn: 0,
+      metaWidthIn: 4.7,
+      photoScale: 1,
+      photoOffsetXIn: 0,
+      photoOffsetYIn: 0,
+      headingScale: 1,
+      commentFontScale: 1,
     };
     if (rows.length && rows[0].value && typeof rows[0].value === 'object') {
       nextTermBegins =
@@ -4940,6 +4948,38 @@ app.get(
           rawLayout.commentGapMm != null && Number.isFinite(Number(rawLayout.commentGapMm))
             ? Math.max(0, Math.min(24, Number(rawLayout.commentGapMm)))
             : 4,
+        metaScale:
+          rawLayout.metaScale != null && Number.isFinite(Number(rawLayout.metaScale))
+            ? Math.max(0.75, Math.min(1.45, Number(rawLayout.metaScale)))
+            : 1,
+        metaOffsetIn:
+          rawLayout.metaOffsetIn != null && Number.isFinite(Number(rawLayout.metaOffsetIn))
+            ? Math.max(-2, Math.min(2, Number(rawLayout.metaOffsetIn)))
+            : 0,
+        metaWidthIn:
+          rawLayout.metaWidthIn != null && Number.isFinite(Number(rawLayout.metaWidthIn))
+            ? Math.max(3, Math.min(6.2, Number(rawLayout.metaWidthIn)))
+            : 4.7,
+        photoScale:
+          rawLayout.photoScale != null && Number.isFinite(Number(rawLayout.photoScale))
+            ? Math.max(0.7, Math.min(1.5, Number(rawLayout.photoScale)))
+            : 1,
+        photoOffsetXIn:
+          rawLayout.photoOffsetXIn != null && Number.isFinite(Number(rawLayout.photoOffsetXIn))
+            ? Math.max(-2, Math.min(2, Number(rawLayout.photoOffsetXIn)))
+            : 0,
+        photoOffsetYIn:
+          rawLayout.photoOffsetYIn != null && Number.isFinite(Number(rawLayout.photoOffsetYIn))
+            ? Math.max(-1.5, Math.min(1.5, Number(rawLayout.photoOffsetYIn)))
+            : 0,
+        headingScale:
+          rawLayout.headingScale != null && Number.isFinite(Number(rawLayout.headingScale))
+            ? Math.max(0.75, Math.min(1.45, Number(rawLayout.headingScale)))
+            : 1,
+        commentFontScale:
+          rawLayout.commentFontScale != null && Number.isFinite(Number(rawLayout.commentFontScale))
+            ? Math.max(0.75, Math.min(1.45, Number(rawLayout.commentFontScale)))
+            : 1,
       };
     }
     // If a stream-specific report has no template yet, reuse any template
@@ -5019,6 +5059,38 @@ app.put(
         rawLayout.commentGapMm != null && Number.isFinite(Number(rawLayout.commentGapMm))
           ? Math.max(0, Math.min(24, Number(rawLayout.commentGapMm)))
           : 4,
+      metaScale:
+        rawLayout.metaScale != null && Number.isFinite(Number(rawLayout.metaScale))
+          ? Math.max(0.75, Math.min(1.45, Number(rawLayout.metaScale)))
+          : 1,
+      metaOffsetIn:
+        rawLayout.metaOffsetIn != null && Number.isFinite(Number(rawLayout.metaOffsetIn))
+          ? Math.max(-2, Math.min(2, Number(rawLayout.metaOffsetIn)))
+          : 0,
+      metaWidthIn:
+        rawLayout.metaWidthIn != null && Number.isFinite(Number(rawLayout.metaWidthIn))
+          ? Math.max(3, Math.min(6.2, Number(rawLayout.metaWidthIn)))
+          : 4.7,
+      photoScale:
+        rawLayout.photoScale != null && Number.isFinite(Number(rawLayout.photoScale))
+          ? Math.max(0.7, Math.min(1.5, Number(rawLayout.photoScale)))
+          : 1,
+      photoOffsetXIn:
+        rawLayout.photoOffsetXIn != null && Number.isFinite(Number(rawLayout.photoOffsetXIn))
+          ? Math.max(-2, Math.min(2, Number(rawLayout.photoOffsetXIn)))
+          : 0,
+      photoOffsetYIn:
+        rawLayout.photoOffsetYIn != null && Number.isFinite(Number(rawLayout.photoOffsetYIn))
+          ? Math.max(-1.5, Math.min(1.5, Number(rawLayout.photoOffsetYIn)))
+          : 0,
+      headingScale:
+        rawLayout.headingScale != null && Number.isFinite(Number(rawLayout.headingScale))
+          ? Math.max(0.75, Math.min(1.45, Number(rawLayout.headingScale)))
+          : 1,
+      commentFontScale:
+        rawLayout.commentFontScale != null && Number.isFinite(Number(rawLayout.commentFontScale))
+          ? Math.max(0.75, Math.min(1.45, Number(rawLayout.commentFontScale)))
+          : 1,
     };
     const templatePath =
       req.body && req.body.templatePath != null ? String(req.body.templatePath).slice(0, 500) : '';
@@ -5060,6 +5132,14 @@ app.post(
         commentsOffsetY: 0,
         badgeScale: 1,
         commentGapMm: 4,
+        metaScale: 1,
+        metaOffsetIn: 0,
+        metaWidthIn: 4.7,
+        photoScale: 1,
+        photoOffsetXIn: 0,
+        photoOffsetYIn: 0,
+        headingScale: 1,
+        commentFontScale: 1,
       },
     };
     if (prev.rows.length && prev.rows[0].value && typeof prev.rows[0].value === 'object') {
