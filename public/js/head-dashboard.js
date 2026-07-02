@@ -770,7 +770,7 @@
     const academicSubjects = subjects.filter(function (s) { return skillList.indexOf(s) === -1; });
     const skillSubjects = subjects.filter(function (s) { return skillList.indexOf(s) !== -1; });
     const beginByM = comparisonByM && comparisonByM.__beginByM ? comparisonByM.__beginByM : null;
-    const hasThreeTerm = period === 'end' && comparisonByM && beginByM;
+    const hasThreeTerm = period === 'end' && comparisonByM;
     const hasComparison = (period === 'mid' || period === 'end') && comparisonByM;
     const firstPeriodLabel = hasThreeTerm ? 'Beginning Of Term' : period === 'end' ? 'Mid Term' : 'Beginning Of Term';
     const secondPeriodLabel = hasThreeTerm ? 'Mid Term' : period === 'end' ? 'End Of Term' : 'Mid Term';
