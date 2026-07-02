@@ -2500,6 +2500,34 @@ body.app-director .dash-notify-btn:disabled {
   font-size: calc(2.7mm * var(--rp-font-scale, 1));
 }
 
+.primary-marks-table-three-term {
+  font-size: calc(2.18mm * var(--rp-font-scale, 1));
+}
+
+.primary-marks-table-three-term .col-subject { width: 12.5%; }
+.primary-marks-table-three-term .col-full { width: 6.3%; }
+.primary-marks-table-three-term .col-scored { width: 7.9%; }
+.primary-marks-table-three-term .col-grade { width: 5.6%; }
+.primary-marks-table-three-term .col-remark { width: 6.9%; }
+.primary-marks-table-three-term .col-initials { width: 5.1%; }
+
+.primary-marks-table-three-term th,
+.primary-marks-table-three-term td {
+  padding: 1.05mm 0.45mm;
+}
+
+.primary-marks-table-three-term thead .period-head th {
+  font-size: calc(2.75mm * var(--rp-font-scale, 1));
+}
+
+.primary-marks-table-three-term thead .period-subhead th {
+  font-size: calc(2.05mm * var(--rp-font-scale, 1));
+}
+
+.primary-marks-table-three-term tbody td:first-child {
+  font-size: calc(2.45mm * var(--rp-font-scale, 1));
+}
+
 .primary-skill-title {
   margin: 1.1mm 0 0.8mm;
   font-size: calc(3.2mm * var(--rp-font-scale, 1));

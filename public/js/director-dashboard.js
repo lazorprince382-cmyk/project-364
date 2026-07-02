@@ -1080,9 +1080,12 @@
     const termLabel = reportTermHeading(period, term, new Date().getFullYear());
     const academicSubjects = subjects.filter(function (s) { return skillList.indexOf(s) === -1; });
     const skillSubjects = subjects.filter(function (s) { return skillList.indexOf(s) !== -1; });
+    const beginByM = comparisonByM && comparisonByM.__beginByM ? comparisonByM.__beginByM : null;
+    const hasThreeTerm = period === 'end' && comparisonByM && beginByM;
     const hasComparison = (period === 'mid' || period === 'end') && comparisonByM;
-    const firstPeriodLabel = period === 'end' ? 'Mid Term' : 'Beginning Of Term';
-    const secondPeriodLabel = period === 'end' ? 'End Of Term' : 'Mid Term';
+    const firstPeriodLabel = hasThreeTerm ? 'Beginning Of Term' : period === 'end' ? 'Mid Term' : 'Beginning Of Term';
+    const secondPeriodLabel = hasThreeTerm ? 'Mid Term' : period === 'end' ? 'End Of Term' : 'Mid Term';
+    const thirdPeriodLabel = 'End Of Term';
     function reportMarkRow(map, sub) {
       const m = (map && map[student.id + '\t' + sub]) || {};
       const scored = m.marks_scored != null ? Number(m.marks_scored) : null;
@@ -1098,28 +1101,45 @@
       };
     }
     const academicRows = academicSubjects.map(function (sub) { return reportMarkRow(byM, sub); });
+    const beginRows = hasThreeTerm
+      ? academicSubjects.map(function (sub) { return reportMarkRow(beginByM, sub); })
+      : [];
     const comparisonRows = hasComparison
       ? academicSubjects.map(function (sub) { return reportMarkRow(comparisonByM, sub); })
       : [];
     const totalScored = academicRows.reduce(function (sum, r) { return sum + (Number.isFinite(r.scored) ? r.scored : 0); }, 0);
     const comparisonTotalScored = comparisonRows.reduce(function (sum, r) { return sum + (Number.isFinite(r.scored) ? r.scored : 0); }, 0);
+    const beginTotalScored = beginRows.reduce(function (sum, r) { return sum + (Number.isFinite(r.scored) ? r.scored : 0); }, 0);
     const aggregateInfo = primaryAggregateFromMarkRowsLocal(academicRows.map(function (r) { return { subject: r.subject, agg: r.agg }; }), skillList);
     const comparisonAggregateInfo = primaryAggregateFromMarkRowsLocal(comparisonRows.map(function (r) { return { subject: r.subject, agg: r.agg }; }), skillList);
+    const beginAggregateInfo = primaryAggregateFromMarkRowsLocal(beginRows.map(function (r) { return { subject: r.subject, agg: r.agg }; }), skillList);
+    function periodCells(row) {
+      return '<td class="num">100</td><td class="num">' + escapeHtml(Number.isFinite(row.scored) ? String(row.scored) : '') + '</td><td class="num">' + escapeHtml(row.agg || '') + '</td><td>' + escapeHtml(row.remark || '') + '</td>';
+    }
     const marksRowsHtml = academicRows.map(function (r, rowIndex) {
+      const begin = beginRows[rowIndex] || {};
       const first = comparisonRows[rowIndex] || {};
       return '<tr><td>' + escapeHtml(r.subject) + '</td>' +
-        (hasComparison
-          ? '<td class="num">100</td><td class="num">' + escapeHtml(Number.isFinite(first.scored) ? String(first.scored) : '') + '</td><td class="num">' + escapeHtml(first.agg || '') + '</td><td>' + escapeHtml(first.remark || '') + '</td>'
-          : '') +
-        '<td class="num">100</td><td class="num">' + escapeHtml(Number.isFinite(r.scored) ? String(r.scored) : '') + '</td><td class="num">' + escapeHtml(r.agg || '') + '</td><td>' + escapeHtml(r.remark || '') + '</td><td class="num">' + escapeHtml(r.initials || '') + '</td></tr>';
+        (hasThreeTerm ? periodCells(begin) : '') +
+        (hasComparison ? periodCells(first) : '') +
+        periodCells(r) +
+        '<td class="num">' + escapeHtml(r.initials || '') + '</td></tr>';
     }).join('');
-    const totalRow = hasComparison
+    const totalRow = hasThreeTerm
+      ? '<tr class="total-row"><td>TOTAL</td><td class="num">' + escapeHtml(String(beginRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(beginTotalScored)) + '</td><td class="num">' + escapeHtml(beginAggregateInfo.sum != null ? String(beginAggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(beginAggregateInfo.division || '-') + '</td><td class="num">' + escapeHtml(String(comparisonRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(comparisonTotalScored)) + '</td><td class="num">' + escapeHtml(comparisonAggregateInfo.sum != null ? String(comparisonAggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(comparisonAggregateInfo.division || '-') + '</td><td class="num">' + escapeHtml(String(academicRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(totalScored)) + '</td><td class="num">' + escapeHtml(aggregateInfo.sum != null ? String(aggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(aggregateInfo.division || '-') + '</td><td></td></tr>'
+      : hasComparison
       ? '<tr class="total-row"><td>TOTAL</td><td class="num">' + escapeHtml(String(comparisonRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(comparisonTotalScored)) + '</td><td class="num">' + escapeHtml(comparisonAggregateInfo.sum != null ? String(comparisonAggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(comparisonAggregateInfo.division || '') + '</td><td class="num">' + escapeHtml(String(academicRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(totalScored)) + '</td><td class="num">' + escapeHtml(aggregateInfo.sum != null ? String(aggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(aggregateInfo.division || '') + '</td><td></td></tr>'
       : '<tr class="total-row"><td>TOTAL</td><td class="num">' + escapeHtml(String(academicRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(totalScored)) + '</td><td class="num">' + escapeHtml(aggregateInfo.sum != null ? String(aggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(aggregateInfo.division || '') + '</td><td></td></tr>';
     const skillsRowsHtml = skillSubjects.map(function (sub) {
       return '<tr><td>' + escapeHtml(sub) + '</td><td>' + escapeHtml(byC[student.id + '\t' + sub] || '') + '</td></tr>';
     }).join('');
-    return '<div class="primary-report-card"><img class="baby-edge baby-edge-top-left" src="/images/reports/baby/edge.png" alt="" /><img class="baby-edge baby-edge-bottom-right" src="/images/reports/baby/edge.png" alt="" /><div class="primary-report-head"><img class="baby-school-title-image" src="/images/reports/baby/school-name-mark.png" alt="School name" /><p class="baby-kicker">&ldquo;Up with skills&rdquo;</p><p class="baby-term">' + escapeHtml(termLabel) + '</p><p class="baby-term baby-term-report">REPORT</p><div class="baby-head-line"></div><img class="baby-student-photo" src="' + escapeHtml(student.passport_path || '/images/ocean-school-logo.png') + '" alt="" /><img class="baby-badge" src="/images/reports/baby/badge.png" alt="" /><div class="baby-meta"><p><strong>NAME:</strong> <span>' + escapeHtml((student.full_name || '').toUpperCase()) + '</span></p><p><strong>CLASS:</strong> <span>' + escapeHtml(classLabel.toUpperCase()) + '</span></p><p><strong>REG NO:</strong> <span>' + escapeHtml((student.reg_no || '').toUpperCase()) + '</span></p></div></div><div class="primary-report-body"><table class="primary-marks-table' + (hasComparison ? ' primary-marks-table-comparison' : '') + '">' + (hasComparison ? '<colgroup><col class="col-subject" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-initials" /></colgroup><thead><tr class="period-head"><th rowspan="2">Subject</th><th colspan="4">' + escapeHtml(firstPeriodLabel) + '</th><th colspan="4">' + escapeHtml(secondPeriodLabel) + '</th><th rowspan="2">Initials</th></tr><tr class="period-subhead"><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th></tr></thead>' : '<thead><tr><th>Subject</th><th>F/M</th><th>Marks scored</th><th>Grade</th><th>Remark</th><th>Initials</th></tr></thead>') + '<tbody>' + marksRowsHtml + totalRow + '</tbody></table>' + primaryGradeScaleHtml() + '<h5 class="primary-skill-title">Skills</h5><table class="primary-skill-table"><tbody>' + skillsRowsHtml + '</tbody></table></div><div class="primary-comments"><p><strong>Class teacher\'s comment:</strong> ' + escapeHtml(ctBy[student.id] || '') + '</p><div class="primary-sign-row"><span>Signature:</span><span class="sig-line"></span></div><p><strong>Head teacher\'s comment:</strong> ' + escapeHtml(headBy[student.id] || '') + '</p><div class="primary-sign-row"><span>Signature:</span><span class="sig-line"></span></div>' + (period === 'end' ? '<p class="baby-next-term">Next term begins: <span>' + escapeHtml(nextTermBegins || '') + '</span></p>' : '') + '</div></div>';
+    const comparisonColGroup = hasThreeTerm
+      ? '<colgroup><col class="col-subject" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-initials" /></colgroup>'
+      : '<colgroup><col class="col-subject" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-initials" /></colgroup>';
+    const comparisonHead = hasThreeTerm
+      ? '<thead><tr class="period-head"><th rowspan="2">Subject</th><th colspan="4">' + escapeHtml(firstPeriodLabel) + '</th><th colspan="4">' + escapeHtml(secondPeriodLabel) + '</th><th colspan="4">' + escapeHtml(thirdPeriodLabel) + '</th><th rowspan="2">Initials</th></tr><tr class="period-subhead"><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th></tr></thead>'
+      : '<thead><tr class="period-head"><th rowspan="2">Subject</th><th colspan="4">' + escapeHtml(firstPeriodLabel) + '</th><th colspan="4">' + escapeHtml(secondPeriodLabel) + '</th><th rowspan="2">Initials</th></tr><tr class="period-subhead"><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th></tr></thead>';
+    return '<div class="primary-report-card"><img class="baby-edge baby-edge-top-left" src="/images/reports/baby/edge.png" alt="" /><img class="baby-edge baby-edge-bottom-right" src="/images/reports/baby/edge.png" alt="" /><div class="primary-report-head"><img class="baby-school-title-image" src="/images/reports/baby/school-name-mark.png" alt="School name" /><p class="baby-kicker">&ldquo;Up with skills&rdquo;</p><p class="baby-term">' + escapeHtml(termLabel) + '</p><p class="baby-term baby-term-report">REPORT</p><div class="baby-head-line"></div><img class="baby-student-photo" src="' + escapeHtml(student.passport_path || '/images/ocean-school-logo.png') + '" alt="" /><img class="baby-badge" src="/images/reports/baby/badge.png" alt="" /><div class="baby-meta"><p><strong>NAME:</strong> <span>' + escapeHtml((student.full_name || '').toUpperCase()) + '</span></p><p><strong>CLASS:</strong> <span>' + escapeHtml(classLabel.toUpperCase()) + '</span></p><p><strong>REG NO:</strong> <span>' + escapeHtml((student.reg_no || '').toUpperCase()) + '</span></p></div></div><div class="primary-report-body"><table class="primary-marks-table' + (hasComparison ? ' primary-marks-table-comparison' : '') + (hasThreeTerm ? ' primary-marks-table-three-term' : '') + '">' + (hasComparison ? comparisonColGroup + comparisonHead : '<thead><tr><th>Subject</th><th>F/M</th><th>Marks scored</th><th>Grade</th><th>Remark</th><th>Initials</th></tr></thead>') + '<tbody>' + marksRowsHtml + totalRow + '</tbody></table>' + primaryGradeScaleHtml() + '<h5 class="primary-skill-title">Skills</h5><table class="primary-skill-table"><tbody>' + skillsRowsHtml + '</tbody></table></div><div class="primary-comments"><p><strong>Class teacher\'s comment:</strong> ' + escapeHtml(ctBy[student.id] || '') + '</p><div class="primary-sign-row"><span>Signature:</span><span class="sig-line"></span></div><p><strong>Head teacher\'s comment:</strong> ' + escapeHtml(headBy[student.id] || '') + '</p><div class="primary-sign-row"><span>Signature:</span><span class="sig-line"></span></div>' + (period === 'end' ? '<p class="baby-next-term">Next term begins: <span>' + escapeHtml(nextTermBegins || '') + '</span></p>' : '') + '</div></div>';
   }
 
   function buildDirectorReportHtml(student, classLevel, stream, term, period, byC, byM, ctBy, headBy, nextTermBegins, comparisonByM) {
@@ -1190,18 +1210,23 @@
       : (cl === 'primary1' || cl === 'primary2') && period === 'end'
       ? 'mid'
       : '';
+    const beginComparisonPeriod = (cl === 'primary1' || cl === 'primary2') && period === 'end' ? 'begin' : '';
     const qBase = 'classLevel=' + encodeURIComponent(cl) + '&stream=' + encodeURIComponent(stream) + '&term=' + encodeURIComponent(term) + '&period=' + encodeURIComponent(period);
     const qComparison = comparisonPeriod
       ? 'classLevel=' + encodeURIComponent(cl) + '&stream=' + encodeURIComponent(stream) + '&term=' + encodeURIComponent(term) + '&period=' + encodeURIComponent(comparisonPeriod)
       : '';
+    const qBeginComparison = beginComparisonPeriod
+      ? 'classLevel=' + encodeURIComponent(cl) + '&stream=' + encodeURIComponent(stream) + '&term=' + encodeURIComponent(term) + '&period=' + encodeURIComponent(beginComparisonPeriod)
+      : '';
     if ((cl === 'primary1' || cl === 'primary2') && !gradingBands.length) await loadGradingBands();
-    const [valRes, comRes, marksRes, headRes, ctRes, comparisonMarksRes] = await Promise.all([
+    const [valRes, comRes, marksRes, headRes, ctRes, comparisonMarksRes, beginComparisonMarksRes] = await Promise.all([
       fetch('/api/report-validate?' + qBase),
       fetch('/api/comments?' + qBase),
       fetch('/api/marks?' + qBase),
       fetch('/api/head-comments?' + qBase),
       fetch('/api/class-teacher-comments?' + qBase),
       comparisonPeriod ? fetch('/api/marks?' + qComparison) : Promise.resolve(null),
+      beginComparisonPeriod ? fetch('/api/marks?' + qBeginComparison) : Promise.resolve(null),
     ]);
     if (!valRes.ok) {
       status.textContent = 'Could not load report data.';
@@ -1211,6 +1236,7 @@
     const comments = comRes.ok ? await comRes.json().catch(() => []) : [];
     const marks = marksRes.ok ? await marksRes.json().catch(() => []) : [];
     const comparisonMarks = comparisonMarksRes && comparisonMarksRes.ok ? await comparisonMarksRes.json().catch(() => []) : [];
+    const beginComparisonMarks = beginComparisonMarksRes && beginComparisonMarksRes.ok ? await beginComparisonMarksRes.json().catch(() => []) : [];
     const head = headRes.ok ? await headRes.json().catch(() => []) : [];
     const ct = ctRes.ok ? await ctRes.json().catch(() => []) : [];
 
@@ -1233,6 +1259,7 @@
     const byC = {};
     const byM = {};
     const comparisonByM = {};
+    const beginComparisonByM = {};
     const ctBy = {};
     const headBy = {};
     (comments || []).forEach((r) => {
@@ -1247,6 +1274,11 @@
       if (String(r.student_id) !== String(sid)) return;
       comparisonByM[r.student_id + '\t' + r.subject] = r;
     });
+    (beginComparisonMarks || []).forEach((r) => {
+      if (String(r.student_id) !== String(sid)) return;
+      beginComparisonByM[r.student_id + '\t' + r.subject] = r;
+    });
+    if (beginComparisonPeriod) comparisonByM.__beginByM = beginComparisonByM;
     (ct || []).forEach((r) => {
       if (String(r.student_id) === String(sid)) ctBy[r.student_id] = r.body || '';
     });

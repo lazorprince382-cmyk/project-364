@@ -1935,9 +1935,12 @@
       const skillSubjects = subjectOrder.filter(function (s) {
         return skillList.indexOf(s) !== -1;
       });
+      const beginByM = comparisonByM && comparisonByM.__beginByM ? comparisonByM.__beginByM : null;
+      const hasThreeTerm = period === 'end' && comparisonByM && beginByM;
       const hasComparison = (period === 'mid' || period === 'end') && comparisonByM;
-      const firstPeriodLabel = period === 'end' ? 'Mid Term' : 'Beginning Of Term';
-      const secondPeriodLabel = period === 'end' ? 'End Of Term' : 'Mid Term';
+      const firstPeriodLabel = hasThreeTerm ? 'Beginning Of Term' : period === 'end' ? 'Mid Term' : 'Beginning Of Term';
+      const secondPeriodLabel = hasThreeTerm ? 'Mid Term' : period === 'end' ? 'End Of Term' : 'Mid Term';
+      const thirdPeriodLabel = 'End Of Term';
       function reportMarkRow(map, sub) {
         const m = (map && map[student.id + '\t' + sub]) || {};
         const scored = m.marks_scored != null ? Number(m.marks_scored) : null;
@@ -1956,6 +1959,9 @@
       const academicRows = academicSubjects.map(function (sub) {
         return reportMarkRow(byM, sub);
       });
+      const beginRows = hasThreeTerm
+        ? academicSubjects.map(function (sub) { return reportMarkRow(beginByM, sub); })
+        : [];
       const comparisonRows = hasComparison
         ? academicSubjects.map(function (sub) { return reportMarkRow(comparisonByM, sub); })
         : [];
@@ -1973,22 +1979,28 @@
       const comparisonAggregateInfo = primaryAggregateFromMarkRowsLocal(
         comparisonRows.map(function (r) { return { subject: r.subject, agg: r.agg }; })
       );
+      const beginTotalScored = beginRows.reduce(function (sum, r) {
+        return sum + (Number.isFinite(r.scored) ? r.scored : 0);
+      }, 0);
+      const beginAggregateInfo = primaryAggregateFromMarkRowsLocal(
+        beginRows.map(function (r) { return { subject: r.subject, agg: r.agg }; })
+      );
+      function periodCells(row) {
+        return '<td class="num">100</td>' +
+          '<td class="num">' + escapeHtml(Number.isFinite(row.scored) ? String(row.scored) : '') + '</td>' +
+          '<td class="num">' + escapeHtml(row.agg || '') + '</td>' +
+          '<td>' + escapeHtml(row.remark || '') + '</td>';
+      }
       const marksRowsHtml = academicRows
         .map(function (r, rowIndex) {
+          const begin = beginRows[rowIndex] || {};
           const first = comparisonRows[rowIndex] || {};
           return (
             '<tr>' +
             '<td>' + escapeHtml(r.subject) + '</td>' +
-            (hasComparison
-              ? '<td class="num">100</td>' +
-                '<td class="num">' + escapeHtml(Number.isFinite(first.scored) ? String(first.scored) : '') + '</td>' +
-                '<td class="num">' + escapeHtml(first.agg || '') + '</td>' +
-                '<td>' + escapeHtml(first.remark || '') + '</td>'
-              : '') +
-            '<td class="num">100</td>' +
-            '<td class="num">' + escapeHtml(Number.isFinite(r.scored) ? String(r.scored) : '') + '</td>' +
-            '<td class="num">' + escapeHtml(r.agg || '') + '</td>' +
-            '<td>' + escapeHtml(r.remark || '') + '</td>' +
+            (hasThreeTerm ? periodCells(begin) : '') +
+            (hasComparison ? periodCells(first) : '') +
+            periodCells(r) +
             '<td class="num">' + escapeHtml(r.initials || '') + '</td>' +
             '</tr>'
           );
@@ -2004,6 +2016,15 @@
           );
         })
         .join('');
+      const comparisonColGroup = hasThreeTerm
+        ? '<colgroup><col class="col-subject" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-initials" /></colgroup>'
+        : '<colgroup><col class="col-subject" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-initials" /></colgroup>';
+      const comparisonHead = hasThreeTerm
+        ? '<thead><tr class="period-head"><th rowspan="2">Subject</th><th colspan="4">' + escapeHtml(firstPeriodLabel) + '</th><th colspan="4">' + escapeHtml(secondPeriodLabel) + '</th><th colspan="4">' + escapeHtml(thirdPeriodLabel) + '</th><th rowspan="2">Initials</th></tr><tr class="period-subhead"><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th></tr></thead>'
+        : '<thead><tr class="period-head"><th rowspan="2">Subject</th><th colspan="4">' + escapeHtml(firstPeriodLabel) + '</th><th colspan="4">' + escapeHtml(secondPeriodLabel) + '</th><th rowspan="2">Initials</th></tr><tr class="period-subhead"><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th></tr></thead>';
+      const totalRowHtml = hasThreeTerm
+        ? '<tr class="total-row"><td>TOTAL</td><td class="num">' + escapeHtml(String(beginRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(beginTotalScored)) + '</td><td class="num">' + escapeHtml(beginAggregateInfo.sum != null ? String(beginAggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(beginAggregateInfo.division || '-') + '</td><td class="num">' + escapeHtml(String(comparisonRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(comparisonTotalScored)) + '</td><td class="num">' + escapeHtml(comparisonAggregateInfo.sum != null ? String(comparisonAggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(comparisonAggregateInfo.division || '-') + '</td><td class="num">' + escapeHtml(String(academicRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(totalScored)) + '</td><td class="num">' + escapeHtml(aggregateInfo.sum != null ? String(aggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(aggregateInfo.division || '-') + '</td><td></td></tr>'
+        : null;
       return (
         '<div class="primary-report-card">' +
         '<img class="baby-edge baby-edge-top-left" src="/images/reports/baby/edge.png" alt="" />' +
@@ -2025,17 +2046,12 @@
         '</div>' +
         '</div>' +
         '<div class="primary-report-body">' +
-        '<table class="primary-marks-table' + (hasComparison ? ' primary-marks-table-comparison' : '') + '">' +
-        (hasComparison
-          ? '<colgroup><col class="col-subject" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-initials" /></colgroup>'
-          : '') +
-        (hasComparison
-          ? '<thead><tr class="period-head"><th rowspan="2">Subject</th><th colspan="4">' + escapeHtml(firstPeriodLabel) + '</th><th colspan="4">' + escapeHtml(secondPeriodLabel) + '</th><th rowspan="2">Initials</th></tr>' +
-            '<tr class="period-subhead"><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th></tr></thead>'
-          : '<thead><tr><th>Subject</th><th>F/M</th><th>Marks scored</th><th>Grade</th><th>Remark</th><th>Initials</th></tr></thead>') +
+        '<table class="primary-marks-table' + (hasComparison ? ' primary-marks-table-comparison' : '') + (hasThreeTerm ? ' primary-marks-table-three-term' : '') + '">' +
+        (hasComparison ? comparisonColGroup : '') +
+        (hasComparison ? comparisonHead : '<thead><tr><th>Subject</th><th>F/M</th><th>Marks scored</th><th>Grade</th><th>Remark</th><th>Initials</th></tr></thead>') +
         '<tbody>' +
         marksRowsHtml +
-        (hasComparison
+        (hasThreeTerm ? totalRowHtml : hasComparison
           ? '<tr class="total-row"><td>TOTAL</td><td class="num">' + escapeHtml(String(comparisonRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(comparisonTotalScored)) + '</td><td class="num">' + escapeHtml(comparisonAggregateInfo.sum != null ? String(comparisonAggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(comparisonAggregateInfo.division || '—') + '</td><td class="num">' + escapeHtml(String(academicRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(totalScored)) + '</td><td class="num">' + escapeHtml(aggregateInfo.sum != null ? String(aggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(aggregateInfo.division || '—') + '</td><td></td></tr>'
           : '<tr class="total-row"><td>TOTAL</td><td class="num">' + escapeHtml(String(academicRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(totalScored)) + '</td><td class="num">' + escapeHtml(aggregateInfo.sum != null ? String(aggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(aggregateInfo.division || '—') + '</td><td></td></tr>') +
         '</tbody>' +
@@ -2288,20 +2304,25 @@
     const reportYear = customYear || yearEl.value || String(new Date().getFullYear());
     const period = periodEl.value;
     const comparisonPeriod = isPrimary && period === 'mid' ? 'begin' : isPrimary && period === 'end' ? 'mid' : '';
+    const beginComparisonPeriod = isPrimary && period === 'end' ? 'begin' : '';
 
-    const [stuRes, comRes, marRes, headRes, ctRes, comparisonMarRes] = await Promise.all([
+    const [stuRes, comRes, marRes, headRes, ctRes, comparisonMarRes, beginComparisonMarRes] = await Promise.all([
       fetch(studentsUrl(reportYear)),
       fetch(commentsUrlForExport(term, period)),
       fetch(marksUrlForExport(term, period)),
       fetch(headCommentsUrlForExport(term, period)),
       fetch(classTeacherCommentsUrlForExport(term, period)),
       comparisonPeriod ? fetch(marksUrlForExport(term, comparisonPeriod)) : Promise.resolve(null),
+      beginComparisonPeriod ? fetch(marksUrlForExport(term, beginComparisonPeriod)) : Promise.resolve(null),
     ]);
     const roster = stuRes.ok ? await stuRes.json() : [];
     const allComments = comRes.ok ? await comRes.json() : [];
     const allMarks = marRes.ok ? await marRes.json() : [];
     const comparisonMarks = comparisonMarRes && comparisonMarRes.ok
       ? await comparisonMarRes.json().catch(function () { return []; })
+      : [];
+    const beginComparisonMarks = beginComparisonMarRes && beginComparisonMarRes.ok
+      ? await beginComparisonMarRes.json().catch(function () { return []; })
       : [];
     let allHead = headRes.ok ? await headRes.json().catch(function () { return []; }) : [];
     let allClassTeacher = ctRes.ok ? await ctRes.json().catch(function () { return []; }) : [];
@@ -2384,6 +2405,7 @@
     const byC = {};
     const byM = {};
     const comparisonByM = {};
+    const beginComparisonByM = {};
     const headBy = {};
     const ctBy = {};
     fc.forEach(function (r) { byC[r.student_id + '\t' + r.subject] = r.body; });
@@ -2391,6 +2413,10 @@
     (Array.isArray(comparisonMarks) ? comparisonMarks : []).forEach(function (r) {
       comparisonByM[r.student_id + '\t' + r.subject] = r;
     });
+    (Array.isArray(beginComparisonMarks) ? beginComparisonMarks : []).forEach(function (r) {
+      beginComparisonByM[r.student_id + '\t' + r.subject] = r;
+    });
+    if (beginComparisonPeriod) comparisonByM.__beginByM = beginComparisonByM;
     fh.forEach(function (r) { headBy[r.student_id] = r.body || ''; });
     fct.forEach(function (r) { ctBy[r.student_id] = r.body || ''; });
 
@@ -2842,6 +2868,7 @@
     const term = Number(hrTerm.value || 1);
     const period = String(hrPeriod.value || 'mid');
     const comparisonPeriod = isPrimary && period === 'mid' ? 'begin' : isPrimary && period === 'end' ? 'mid' : '';
+    const beginComparisonPeriod = isPrimary && period === 'end' ? 'begin' : '';
     hrStatus.textContent = 'Loading...';
     hrMetricsBody.innerHTML = '';
     renderHistoryLearnerRows([]);
@@ -2853,13 +2880,14 @@
       historyFilteredRoster = historyRosterCache.slice();
       renderHistoryLearnerRows(historyFilteredRoster);
 
-      const [comRes, marRes, headRes, ctRes, valRes, comparisonMarRes] = await Promise.all([
+      const [comRes, marRes, headRes, ctRes, valRes, comparisonMarRes, beginComparisonMarRes] = await Promise.all([
         fetch(historyUrl('/api/comments', term, period, year)),
         fetch(historyUrl('/api/marks', term, period, year)),
         fetch(historyUrl('/api/head-comments', term, period, year)),
         fetch(historyUrl('/api/class-teacher-comments', term, period, year)),
         fetch(historyUrl('/api/report-validate', term, period, year)),
         comparisonPeriod ? fetch(historyUrl('/api/marks', term, comparisonPeriod, year)) : Promise.resolve(null),
+        beginComparisonPeriod ? fetch(historyUrl('/api/marks', term, beginComparisonPeriod, year)) : Promise.resolve(null),
       ]);
       const rowsC = comRes.ok ? await comRes.json().catch(function () { return []; }) : [];
       const rowsM = marRes.ok ? await marRes.json().catch(function () { return []; }) : [];
@@ -2868,16 +2896,22 @@
       const comparisonRowsM = comparisonMarRes && comparisonMarRes.ok
         ? await comparisonMarRes.json().catch(function () { return []; })
         : [];
+      const beginComparisonRowsM = beginComparisonMarRes && beginComparisonMarRes.ok
+        ? await beginComparisonMarRes.json().catch(function () { return []; })
+        : [];
       const val = valRes.ok ? await valRes.json().catch(function () { return null; }) : null;
 
       historyByC = {};
       historyByM = {};
       historyComparisonByM = {};
+      const historyBeginComparisonByM = {};
       historyHeadBy = {};
       historyCtBy = {};
       (rowsC || []).forEach(function (r) { historyByC[r.student_id + '\t' + r.subject] = r.body || ''; });
       (rowsM || []).forEach(function (r) { historyByM[r.student_id + '\t' + r.subject] = r; });
       (comparisonRowsM || []).forEach(function (r) { historyComparisonByM[r.student_id + '\t' + r.subject] = r; });
+      (beginComparisonRowsM || []).forEach(function (r) { historyBeginComparisonByM[r.student_id + '\t' + r.subject] = r; });
+      if (beginComparisonPeriod) historyComparisonByM.__beginByM = historyBeginComparisonByM;
       (rowsH || []).forEach(function (r) { historyHeadBy[r.student_id] = r.body || ''; });
       (rowsCT || []).forEach(function (r) { historyCtBy[r.student_id] = r.body || ''; });
       historyTerm = term;
@@ -3711,7 +3745,8 @@
 
     try {
       const comparisonPeriod = isPrimary && period === 'mid' ? 'begin' : isPrimary && period === 'end' ? 'mid' : '';
-      const [comRes, marRes, headRes, ctRes, settingRes, comparisonMarRes] = await Promise.all([
+      const beginComparisonPeriod = isPrimary && period === 'end' ? 'begin' : '';
+      const [comRes, marRes, headRes, ctRes, settingRes, comparisonMarRes, beginComparisonMarRes] = await Promise.all([
         fetch(urlWithYear(null, '/api/comments', { term: term, period: period })),
         fetch(urlWithYear(null, '/api/marks', { term: term, period: period })),
         fetch(urlWithYear(null, '/api/head-comments', { term: term, period: period })),
@@ -3727,11 +3762,17 @@
         comparisonPeriod
           ? fetch(urlWithYear(null, '/api/marks', { term: term, period: comparisonPeriod }))
           : Promise.resolve(null),
+        beginComparisonPeriod
+          ? fetch(urlWithYear(null, '/api/marks', { term: term, period: beginComparisonPeriod }))
+          : Promise.resolve(null),
       ]);
       const allComments = comRes.ok ? await comRes.json() : [];
       const allMarks = marRes.ok ? await marRes.json() : [];
       const comparisonMarks = comparisonMarRes && comparisonMarRes.ok
         ? await comparisonMarRes.json().catch(function () { return []; })
+        : [];
+      const beginComparisonMarks = beginComparisonMarRes && beginComparisonMarRes.ok
+        ? await beginComparisonMarRes.json().catch(function () { return []; })
         : [];
       let allHead = headRes.ok ? await headRes.json().catch(function () { return []; }) : [];
       let allClassTeacher = ctRes.ok ? await ctRes.json().catch(function () { return []; }) : [];
@@ -3750,6 +3791,7 @@
       const byC = {};
       const byM = {};
       const comparisonByM = {};
+      const beginComparisonByM = {};
       const headBy = {};
       const ctBy = {};
       fc.forEach(function (r) { byC[r.student_id + '\t' + r.subject] = r.body; });
@@ -3757,6 +3799,10 @@
       (Array.isArray(comparisonMarks) ? comparisonMarks : []).forEach(function (r) {
         comparisonByM[r.student_id + '\t' + r.subject] = r;
       });
+      (Array.isArray(beginComparisonMarks) ? beginComparisonMarks : []).forEach(function (r) {
+        beginComparisonByM[r.student_id + '\t' + r.subject] = r;
+      });
+      if (beginComparisonPeriod) comparisonByM.__beginByM = beginComparisonByM;
       fh.forEach(function (r) { headBy[r.student_id] = r.body || ''; });
       fct.forEach(function (r) { ctBy[r.student_id] = r.body || ''; });
       const nextTermBegins = period === 'end' ? reportSettings.nextTermBegins || '' : '';
