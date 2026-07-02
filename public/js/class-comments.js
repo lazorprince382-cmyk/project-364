@@ -240,11 +240,14 @@
   function renderDynamicCommentBank(bankId, textarea, items) {
     const bank = document.getElementById(bankId);
     if (!bank) return;
+    const hasItems = !!(items && items.length);
+    bank.hidden = !hasItems;
+    bank.style.display = hasItems ? '' : 'none';
     const ui = ensureCommentPicker(bank, textarea);
     ui.list.innerHTML = '';
     ui.picker.hidden = true;
     ui.openBtn.setAttribute('aria-expanded', 'false');
-    if (!items || !items.length) {
+    if (!hasItems) {
       ui.openBtn.disabled = true;
       ui.openBtn.textContent = 'Suggested comments (add weekly progress first)';
       return;
@@ -280,9 +283,19 @@
   function applyQuickCommentBanks(subject, rows) {
     const QC = window.OceanQuickComments;
     if (!QC) return;
+    const weeklyRows = Array.isArray(rows)
+      ? rows.filter(function (r) {
+          return String((r && r.band) || '').trim();
+        })
+      : [];
+    if (!weeklyRows.length) {
+      renderDynamicCommentBank('cc-comment-bank', elBody, []);
+      renderDynamicCommentBank('cc-ct-bank', elCTBody, []);
+      return;
+    }
     const s = students[idx];
     const name = s ? QC.learnerEnglishFirstName(s.full_name) : 'Learner';
-    const summary = QC.summarizeWeeklyBands(rows || []);
+    const summary = QC.summarizeWeeklyBands(weeklyRows);
     const seedBase = s
       ? {
           studentId: s.id,
@@ -290,9 +303,9 @@
           subject: subject,
           classLevel: ctx.classLevel,
           summary: summary,
-          weeklyRows: rows || [],
+          weeklyRows: weeklyRows,
         }
-      : { name: name, subject: subject || '', classLevel: ctx.classLevel, summary: summary, weeklyRows: rows || [] };
+      : { name: name, subject: subject || '', classLevel: ctx.classLevel, summary: summary, weeklyRows: weeklyRows };
 
     const subjectItems = QC.buildSubjectComments(seedBase);
     const ctItems = QC.buildClassTeacherComments(seedBase);
@@ -1476,7 +1489,7 @@
     return ctx.classLevel === 'middle'
       ? ['Language Development', 'Reading', 'Writing', 'Numeracy', 'General Knowledge', 'Computer', 'Music', 'Salon', 'Fashion and Design', 'Bakery']
       : ctx.classLevel === 'daycare'
-      ? ['Listening and Speaking', 'Drawing and Shading', 'General Knowledge', 'Social Development', 'Rhythms and Songs', 'Health Habits']
+      ? ['Listening and Speaking', 'Drawing and Shading', 'General Knowledge', 'Social Development', 'Rhymes and songs', 'Health Habits']
       : ctx.classLevel === 'top'
       ? ['Language Development', 'Health Habits', 'Reading', 'Writing', 'Social Development', 'Numeracy', 'Fashion and Design', 'Bakery', 'Salon', 'Music', 'Computer']
       : ['Reading', 'Writing', 'Numeracy', 'General Knowledge', 'Computer', 'Music', 'Salon', 'Fashion and Design'];
@@ -2065,7 +2078,7 @@
         'Drawing and Shading': '/images/reports/daycare/drawing-and-shading.png',
         'General Knowledge': '/images/reports/daycare/general-knowledge.png',
         'Social Development': '/images/reports/daycare/social-development.png',
-        'Rhythms and Songs': '/images/reports/daycare/rhythms-and-songs.png',
+        'Rhymes and songs': '/images/reports/daycare/rhymes-and-songs.png',
         'Health Habits': '/images/reports/daycare/health-habits.png',
       };
       const titleClass = {
@@ -2082,12 +2095,15 @@
         'Drawing and Shading': 'subject-drawing',
         'General Knowledge': 'subject-general-knowledge',
         'Social Development': 'subject-social-development',
-        'Rhythms and Songs': 'subject-rhythms',
+        'Rhymes and songs': 'subject-rhymes',
         'Health Habits': 'subject-health-habits',
       };
       const cards = cardOrder
         .map(function (sub) {
-          const body = byC[student.id + '\t' + sub] || '';
+          const body =
+            byC[student.id + '\t' + sub] ||
+            (sub === 'Rhymes and songs' ? byC[student.id + '\t' + ('Rhyth' + 'ms and Songs')] : '') ||
+            '';
           return (
             '<article class="baby-subject-card" data-subject="' +
             escapeHtml(sub) +
@@ -2181,11 +2197,15 @@
             '</td></tr>'
         );
       } else {
+        const body =
+          byC[student.id + '\t' + sub] ||
+          (sub === 'Rhymes and songs' ? byC[student.id + '\t' + ('Rhyth' + 'ms and Songs')] : '') ||
+          '';
         rows.push(
           '<tr><td>' +
             escapeHtml(sub) +
             '</td><td colspan="3" class="report-long-cell">' +
-            escapeHtml(byC[student.id + '\t' + sub] || '') +
+            escapeHtml(body) +
             '</td></tr>'
         );
       }
@@ -3228,7 +3248,11 @@
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error('Failed to save report settings');
-    currentReportSettings = merged;
+    const saved = await res.json().catch(function () {
+      return null;
+    });
+    currentReportSettings = normalizeReportSettingsLocal(saved && saved.ok ? saved : merged);
+    return currentReportSettings;
   }
 
   function renderReportSubjectOrderEditor() {
@@ -3375,8 +3399,9 @@
   if (rpLayoutSave) {
     rpLayoutSave.addEventListener('click', async function () {
       const draft = currentReportTemplateDraft();
+      let saved;
       try {
-        await saveReportSettingsPatch({
+        saved = await saveReportSettingsPatch({
           fontScale: draft.fontScale,
           fontFamily: draft.fontFamily,
           layout: draft.layout,
@@ -3386,7 +3411,10 @@
         return;
       }
       if (ctx.flash) ctx.flash('Template layout saved for this class.', true);
-      refreshReportTemplate();
+      syncReportCustomizePanel(saved || draft);
+      await refreshReportTemplate();
+      syncReportCustomizePanel(saved || draft);
+      applyReportTemplateCustomization(saved || draft);
     });
   }
 

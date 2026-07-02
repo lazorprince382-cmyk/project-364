@@ -5023,12 +5023,13 @@ app.put(
     const templatePath =
       req.body && req.body.templatePath != null ? String(req.body.templatePath).slice(0, 500) : '';
     const key = `report_next_term_${classLevel}_${stream || '_'}`;
+    const savedSettings = { nextTermBegins, fontScale, templatePath, fontFamily, layout };
     await pool.query(
       `INSERT INTO app_settings (key, value) VALUES ($1, $2::jsonb)
        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
-      [key, JSON.stringify({ nextTermBegins, fontScale, templatePath, fontFamily, layout })]
+      [key, JSON.stringify(savedSettings)]
     );
-    res.json({ ok: true });
+    res.json({ ok: true, classLevel, stream, ...savedSettings });
   })
 );
 

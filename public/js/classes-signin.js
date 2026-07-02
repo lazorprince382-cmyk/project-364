@@ -46,6 +46,55 @@
 
   let pending = null;
 
+  function labelFromTargetUrl(targetUrl, kind) {
+    try {
+      const u = new URL(targetUrl, window.location.origin);
+      if (kind === 'skill') {
+        const skill = String(u.searchParams.get('skill') || '').trim().toLowerCase();
+        const skillLabels = {
+          computer: 'Computer',
+          salon: 'Salon',
+          bakery: 'Bakery',
+          fashion: 'Fashion and Design',
+          fashiondesign: 'Fashion and Design',
+          fashion_and_design: 'Fashion and Design',
+          music: 'Music',
+        };
+        return skillLabels[skill] || '';
+      }
+      const path = u.pathname.toLowerCase();
+      if (path !== '/dashboard.html' && !path.endsWith('/dashboard.html')) return '';
+      const classLevel = String(u.searchParams.get('class') || '').trim().toLowerCase();
+      const stream = String(u.searchParams.get('stream') || '').trim().toLowerCase();
+      const classLabels = {
+        daycare: 'Day Care',
+        baby: 'Baby Class',
+        middle: 'Middle Class',
+        top: 'Top Class',
+        primary1: 'Primary One',
+        primary2: 'Primary Two',
+      };
+      const streamLabels = {
+        waves: 'Waves',
+        pearls: 'Pearls',
+        dolphins: 'Dolphins',
+        whales: 'Whales',
+      };
+      const base = classLabels[classLevel] || '';
+      if (!base) return '';
+      return stream ? base + ' - ' + (streamLabels[stream] || stream) : base;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function titleForOptions(opts) {
+    const label = String((opts && opts.label) || '').trim();
+    if (!label) return (opts && opts.title) || 'Sign in to open this class';
+    if (opts.kind === 'skill') return 'Sign in to open ' + label;
+    return 'Sign in to open ' + label;
+  }
+
   function loadRememberedEmail() {
     if (!emailInput || !rememberInput) return;
     try {
@@ -91,9 +140,12 @@
 
   function showOverlay(opts, message) {
     pending = opts;
-    if (titleEl) titleEl.textContent = opts.title || 'Sign in to open this class';
+    if (titleEl) titleEl.textContent = titleForOptions(opts);
     if (subtitleEl) {
-      subtitleEl.textContent = opts.subtitle || 'Use your school email and password to continue.';
+      const label = String((opts && opts.label) || '').trim();
+      subtitleEl.textContent = label
+        ? 'Use your school email and password to continue to ' + label + '.'
+        : opts.subtitle || 'Use your school email and password to continue.';
     }
     showError(message || '');
     overlay.classList.add('open');
@@ -171,6 +223,7 @@
   function requestAccess(presetKey, targetUrl, extra) {
     const base = SIGNIN_PRESETS[presetKey] || SIGNIN_PRESETS.class;
     const opts = Object.assign({ targetUrl: targetUrl, kind: presetKey }, base, extra || {});
+    if (!opts.label) opts.label = labelFromTargetUrl(targetUrl, opts.kind);
     tryNavigate(opts);
   }
 
@@ -239,11 +292,12 @@
     const q = new URLSearchParams(window.location.search);
     const kind = q.get('signin');
     const next = q.get('next');
+    const label = String(q.get('label') || '').trim();
     if (!kind || !next || !auth.isSafeNext) return;
     if (!auth.isSafeNext(next)) return;
     const preset = SIGNIN_PRESETS[kind];
     if (!preset) return;
-    requestAccess(kind, next);
+    requestAccess(kind, next, label ? { label: label } : null);
     const clean = window.location.pathname;
     window.history.replaceState({}, '', clean);
   }

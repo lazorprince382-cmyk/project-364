@@ -63,6 +63,14 @@
       sub: 'This device’s display name, photo, and theme. Primary grading bands are edited inside any class workspace → Settings.',
     },
   };
+  const REPORT_FONT_FAMILIES = {
+    default: '',
+    calibri: 'Calibri, "Segoe UI", Arial, sans-serif',
+    georgia: 'Georgia, "Times New Roman", serif',
+    verdana: 'Verdana, Geneva, sans-serif',
+    trebuchet: '"Trebuchet MS", "Segoe UI", sans-serif',
+    times: '"Times New Roman", Times, serif',
+  };
 
   function $(sel, root) {
     return (root || document).querySelector(sel);
@@ -541,6 +549,42 @@
     return d.innerHTML;
   }
 
+  function normalizeBandsClient(arr) {
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .map(function (b) {
+        return {
+          min: Number(b.min),
+          max: Number(b.max),
+          agg: String(b.agg || '').trim(),
+          remark: String(b.remark || '').trim(),
+        };
+      })
+      .filter(function (b) {
+        return !Number.isNaN(b.min) && !Number.isNaN(b.max) && b.min <= b.max;
+      });
+  }
+
+  function gradeFromPercentClient(percent, bands) {
+    const n = Number(percent);
+    if (Number.isNaN(n)) return { agg: '', remark: '' };
+    for (let i = 0; i < bands.length; i += 1) {
+      const b = bands[i];
+      if (n >= b.min && n <= b.max) return { agg: b.agg, remark: b.remark };
+    }
+    return { agg: '', remark: '' };
+  }
+
+  async function loadGradingBands() {
+    try {
+      const res = await fetch('/api/settings/grading-scale');
+      const data = res.ok ? await res.json().catch(function () { return {}; }) : {};
+      gradingBands = normalizeBandsClient(data.bands || []);
+    } catch (_) {
+      gradingBands = [];
+    }
+  }
+
   async function loadOverview() {
     const term = $('#filter-term').value;
     const period = $('#filter-period').value;
@@ -609,6 +653,7 @@
   let learnersRows = [];
   let directorReportGroups = [];
   let directorReportLearners = [];
+  let gradingBands = [];
   let classCatalogRows = [];
 
   async function loadClassCatalog() {
@@ -961,6 +1006,48 @@
     return { sum: sum, division: div };
   }
 
+  function primaryGradeScaleHtml() {
+    const bands = normalizeBandsClient(gradingBands)
+      .slice()
+      .sort(function (a, b) { return b.max - a.max; });
+    if (!bands.length) return '';
+    const rows = [];
+    for (let i = 0; i < bands.length; i += 3) {
+      const cells = [];
+      bands.slice(i, i + 3).forEach(function (band) {
+        cells.push(
+          '<td>' + escapeHtml(String(band.min) + ' - ' + String(band.max)) + '</td>' +
+          '<td title="' + escapeHtml(band.remark || '') + '">' + escapeHtml(band.agg || '') + '</td>'
+        );
+      });
+      while (cells.length < 3) cells.push('<td></td><td></td>');
+      rows.push('<tr>' + cells.join('') + '</tr>');
+    }
+    return '<div class="primary-grade-scale"><h5>GRADING SCALE</h5><table><tbody>' + rows.join('') + '</tbody></table></div>';
+  }
+
+  function applyExplorerReportSettings(settings, root) {
+    if (!settings || !root) return;
+    const layout = settings.layout && typeof settings.layout === 'object' ? settings.layout : {};
+    const cards = root.querySelectorAll('.baby-report-card, .primary-report-card');
+    cards.forEach(function (card) {
+      card.style.fontFamily = REPORT_FONT_FAMILIES[settings.fontFamily] || '';
+      if (settings.fontScale != null) card.style.setProperty('--rp-font-scale', String(settings.fontScale));
+      if (layout.badgeScale != null) card.style.setProperty('--rp-badge-scale', String(layout.badgeScale));
+      if (layout.commentGapMm != null) card.style.setProperty('--rp-comment-gap-mm', String(layout.commentGapMm));
+      const bodyBlock = card.querySelector('.baby-subjects-grid, .primary-report-body');
+      if (bodyBlock) {
+        bodyBlock.style.transformOrigin = 'top left';
+        bodyBlock.style.transform = 'translate(' + Number(layout.subjectGridOffsetX || 0) + 'px, ' + Number(layout.subjectGridOffsetY || 0) + 'px)';
+      }
+      const commentsBlock = card.querySelector('.baby-bottom-comments, .primary-comments, .report-comments');
+      if (commentsBlock) {
+        commentsBlock.style.transformOrigin = 'top left';
+        commentsBlock.style.transform = 'translate(' + Number(layout.commentsOffsetX || 0) + 'px, ' + Number(layout.commentsOffsetY || 0) + 'px)';
+      }
+    });
+  }
+
   function normalizeExplorerCommentSignatures(root) {
     if (!root) return;
     root.querySelectorAll('.baby-bottom-comments').forEach(function (block) {
@@ -986,7 +1073,56 @@
     });
   }
 
-  function buildDirectorReportHtml(student, classLevel, stream, term, period, byC, byM, ctBy, headBy, nextTermBegins) {
+  function buildPrimaryExplorerReportHtml(student, classLevel, stream, term, period, byC, byM, ctBy, headBy, nextTermBegins, comparisonByM) {
+    const skillList = window.OCEAN_SKILL_SUBJECTS || [];
+    const subjects = (window.OCEAN_SUBJECTS && window.OCEAN_SUBJECTS[classLevel]) || [];
+    const classLabel = humanClassLevel(classLevel) + (stream ? ' (' + stream + ')' : '');
+    const termLabel = reportTermHeading(period, term, new Date().getFullYear());
+    const academicSubjects = subjects.filter(function (s) { return skillList.indexOf(s) === -1; });
+    const skillSubjects = subjects.filter(function (s) { return skillList.indexOf(s) !== -1; });
+    const hasComparison = (period === 'mid' || period === 'end') && comparisonByM;
+    const firstPeriodLabel = period === 'end' ? 'Mid Term' : 'Beginning Of Term';
+    const secondPeriodLabel = period === 'end' ? 'End Of Term' : 'Mid Term';
+    function reportMarkRow(map, sub) {
+      const m = (map && map[student.id + '\t' + sub]) || {};
+      const scored = m.marks_scored != null ? Number(m.marks_scored) : null;
+      const grade = Number.isFinite(scored) && gradingBands.length
+        ? gradeFromPercentClient(scored, gradingBands)
+        : { agg: m.agg || '', remark: m.remark || '' };
+      return {
+        subject: sub,
+        scored: scored,
+        agg: grade.agg || '',
+        remark: grade.remark || '',
+        initials: m.initials || '',
+      };
+    }
+    const academicRows = academicSubjects.map(function (sub) { return reportMarkRow(byM, sub); });
+    const comparisonRows = hasComparison
+      ? academicSubjects.map(function (sub) { return reportMarkRow(comparisonByM, sub); })
+      : [];
+    const totalScored = academicRows.reduce(function (sum, r) { return sum + (Number.isFinite(r.scored) ? r.scored : 0); }, 0);
+    const comparisonTotalScored = comparisonRows.reduce(function (sum, r) { return sum + (Number.isFinite(r.scored) ? r.scored : 0); }, 0);
+    const aggregateInfo = primaryAggregateFromMarkRowsLocal(academicRows.map(function (r) { return { subject: r.subject, agg: r.agg }; }), skillList);
+    const comparisonAggregateInfo = primaryAggregateFromMarkRowsLocal(comparisonRows.map(function (r) { return { subject: r.subject, agg: r.agg }; }), skillList);
+    const marksRowsHtml = academicRows.map(function (r, rowIndex) {
+      const first = comparisonRows[rowIndex] || {};
+      return '<tr><td>' + escapeHtml(r.subject) + '</td>' +
+        (hasComparison
+          ? '<td class="num">100</td><td class="num">' + escapeHtml(Number.isFinite(first.scored) ? String(first.scored) : '') + '</td><td class="num">' + escapeHtml(first.agg || '') + '</td><td>' + escapeHtml(first.remark || '') + '</td>'
+          : '') +
+        '<td class="num">100</td><td class="num">' + escapeHtml(Number.isFinite(r.scored) ? String(r.scored) : '') + '</td><td class="num">' + escapeHtml(r.agg || '') + '</td><td>' + escapeHtml(r.remark || '') + '</td><td class="num">' + escapeHtml(r.initials || '') + '</td></tr>';
+    }).join('');
+    const totalRow = hasComparison
+      ? '<tr class="total-row"><td>TOTAL</td><td class="num">' + escapeHtml(String(comparisonRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(comparisonTotalScored)) + '</td><td class="num">' + escapeHtml(comparisonAggregateInfo.sum != null ? String(comparisonAggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(comparisonAggregateInfo.division || '') + '</td><td class="num">' + escapeHtml(String(academicRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(totalScored)) + '</td><td class="num">' + escapeHtml(aggregateInfo.sum != null ? String(aggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(aggregateInfo.division || '') + '</td><td></td></tr>'
+      : '<tr class="total-row"><td>TOTAL</td><td class="num">' + escapeHtml(String(academicRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(totalScored)) + '</td><td class="num">' + escapeHtml(aggregateInfo.sum != null ? String(aggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(aggregateInfo.division || '') + '</td><td></td></tr>';
+    const skillsRowsHtml = skillSubjects.map(function (sub) {
+      return '<tr><td>' + escapeHtml(sub) + '</td><td>' + escapeHtml(byC[student.id + '\t' + sub] || '') + '</td></tr>';
+    }).join('');
+    return '<div class="primary-report-card"><img class="baby-edge baby-edge-top-left" src="/images/reports/baby/edge.png" alt="" /><img class="baby-edge baby-edge-bottom-right" src="/images/reports/baby/edge.png" alt="" /><div class="primary-report-head"><img class="baby-school-title-image" src="/images/reports/baby/school-name-mark.png" alt="School name" /><p class="baby-kicker">&ldquo;Up with skills&rdquo;</p><p class="baby-term">' + escapeHtml(termLabel) + '</p><p class="baby-term baby-term-report">REPORT</p><div class="baby-head-line"></div><img class="baby-student-photo" src="' + escapeHtml(student.passport_path || '/images/ocean-school-logo.png') + '" alt="" /><img class="baby-badge" src="/images/reports/baby/badge.png" alt="" /><div class="baby-meta"><p><strong>NAME:</strong> <span>' + escapeHtml((student.full_name || '').toUpperCase()) + '</span></p><p><strong>CLASS:</strong> <span>' + escapeHtml(classLabel.toUpperCase()) + '</span></p><p><strong>REG NO:</strong> <span>' + escapeHtml((student.reg_no || '').toUpperCase()) + '</span></p></div></div><div class="primary-report-body"><table class="primary-marks-table' + (hasComparison ? ' primary-marks-table-comparison' : '') + '">' + (hasComparison ? '<colgroup><col class="col-subject" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-full" /><col class="col-scored" /><col class="col-grade" /><col class="col-remark" /><col class="col-initials" /></colgroup><thead><tr class="period-head"><th rowspan="2">Subject</th><th colspan="4">' + escapeHtml(firstPeriodLabel) + '</th><th colspan="4">' + escapeHtml(secondPeriodLabel) + '</th><th rowspan="2">Initials</th></tr><tr class="period-subhead"><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th></tr></thead>' : '<thead><tr><th>Subject</th><th>F/M</th><th>Marks scored</th><th>Grade</th><th>Remark</th><th>Initials</th></tr></thead>') + '<tbody>' + marksRowsHtml + totalRow + '</tbody></table>' + primaryGradeScaleHtml() + '<h5 class="primary-skill-title">Skills</h5><table class="primary-skill-table"><tbody>' + skillsRowsHtml + '</tbody></table></div><div class="primary-comments"><p><strong>Class teacher\'s comment:</strong> ' + escapeHtml(ctBy[student.id] || '') + '</p><div class="primary-sign-row"><span>Signature:</span><span class="sig-line"></span></div><p><strong>Head teacher\'s comment:</strong> ' + escapeHtml(headBy[student.id] || '') + '</p><div class="primary-sign-row"><span>Signature:</span><span class="sig-line"></span></div>' + (period === 'end' ? '<p class="baby-next-term">Next term begins: <span>' + escapeHtml(nextTermBegins || '') + '</span></p>' : '') + '</div></div>';
+  }
+
+  function buildDirectorReportHtml(student, classLevel, stream, term, period, byC, byM, ctBy, headBy, nextTermBegins, comparisonByM) {
     const isPrimary = classLevel === 'primary1' || classLevel === 'primary2';
     const skillList = window.OCEAN_SKILL_SUBJECTS || [];
     const subjects = (window.OCEAN_SUBJECTS && window.OCEAN_SUBJECTS[classLevel]) || [];
@@ -994,6 +1130,7 @@
     const termLabel = reportTermHeading(period, term, new Date().getFullYear());
 
     if (isPrimary) {
+      return buildPrimaryExplorerReportHtml(student, classLevel, stream, term, period, byC, byM, ctBy, headBy, nextTermBegins, comparisonByM);
       const academicSubjects = subjects.filter(function (s) { return skillList.indexOf(s) === -1; });
       const skillSubjects = subjects.filter(function (s) { return skillList.indexOf(s) !== -1; });
       const academicRows = academicSubjects.map(function (sub) {
@@ -1014,7 +1151,7 @@
     const cardOrder = classLevel === 'middle'
       ? ['Language Development', 'Reading', 'Writing', 'Numeracy', 'General Knowledge', 'Computer', 'Music', 'Salon', 'Fashion and Design', 'Bakery']
       : classLevel === 'daycare'
-      ? ['Listening and Speaking', 'Drawing and Shading', 'General Knowledge', 'Social Development', 'Rhythms and Songs', 'Health Habits']
+      ? ['Listening and Speaking', 'Drawing and Shading', 'General Knowledge', 'Social Development', 'Rhymes and songs', 'Health Habits']
       : classLevel === 'top'
       ? ['Language Development', 'Health Habits', 'Reading', 'Writing', 'Social Development', 'Numeracy', 'Fashion and Design', 'Bakery', 'Salon', 'Music', 'Computer']
       : ['Reading', 'Writing', 'Numeracy', 'General Knowledge', 'Computer', 'Music', 'Salon', 'Fashion and Design'];
@@ -1023,10 +1160,11 @@
       Numeracy: '/images/reports/baby/numeracy.png', Computer: '/images/reports/baby/computer.png', Music: '/images/reports/baby/music.png', Salon: '/images/reports/baby/salon.png',
       'Fashion and Design': '/images/reports/baby/fashion-and-design.png', Bakery: '/images/reports/baby/bakery.png', 'Listening and Speaking': '/images/reports/daycare/listening-and-speaking.png',
       'Drawing and Shading': '/images/reports/daycare/drawing-and-shading.png', 'General Knowledge': '/images/reports/daycare/general-knowledge.png', 'Social Development': '/images/reports/daycare/social-development.png',
-      'Rhythms and Songs': '/images/reports/daycare/rhythms-and-songs.png', 'Health Habits': '/images/reports/daycare/health-habits.png',
+      'Rhymes and songs': '/images/reports/daycare/rhymes-and-songs.png', 'Health Habits': '/images/reports/daycare/health-habits.png',
     };
     const cards = cardOrder.map(function (sub) {
-      return '<article class="baby-subject-card"><img src="' + escapeHtml(subjectIcons[sub] || '') + '" alt="" /><h5>' + escapeHtml(sub) + '</h5><p>' + escapeHtml(byC[student.id + '\t' + sub] || '—') + '</p></article>';
+      const body = byC[student.id + '\t' + sub] || (sub === 'Rhymes and songs' ? byC[student.id + '\t' + ('Rhyth' + 'ms and Songs')] : '') || '—';
+      return '<article class="baby-subject-card"><img src="' + escapeHtml(subjectIcons[sub] || '') + '" alt="" /><h5>' + escapeHtml(sub) + '</h5><p>' + escapeHtml(body) + '</p></article>';
     }).join('');
     return '<div class="baby-report-card' + (classLevel === 'middle' ? ' middle-report-card' : '') + (classLevel === 'daycare' ? ' daycare-report-card' : '') + (classLevel === 'top' ? ' top-report-card' : '') + '"><img class="baby-edge baby-edge-top-left" src="/images/reports/baby/edge.png" alt="" /><img class="baby-edge baby-edge-bottom-right" src="/images/reports/baby/edge.png" alt="" /><div class="baby-report-head"><img class="baby-school-title-image" src="/images/reports/baby/school-name-mark.png" alt="School name" /><p class="baby-kicker">“Up with skills”</p><p class="baby-term">' + escapeHtml(termLabel) + '</p><p class="baby-term baby-term-report">REPORT</p><div class="baby-head-line"></div><img class="baby-student-photo" src="' + escapeHtml(student.passport_path || '/images/ocean-school-logo.png') + '" alt="" /><img class="baby-badge" src="/images/reports/baby/badge.png" alt="" /><div class="baby-meta"><p><strong>NAME:</strong> <span>' + escapeHtml((student.full_name || '').toUpperCase()) + '</span></p><p><strong>CLASS:</strong> <span>' + escapeHtml(classLabel.toUpperCase()) + '</span></p><p><strong>REG NO:</strong> <span>' + escapeHtml((student.reg_no || '').toUpperCase()) + '</span></p></div></div><section class="baby-subjects-grid">' + cards + '</section><div class="baby-bottom-comments' + (period !== 'end' ? ' no-next-term' : '') + '"><p><strong>Class teacher\'s comment:</strong> ' + escapeHtml(ctBy[student.id] || '') + '</p><div class="baby-head-row"><p><strong>Head caregiver\'s comment:</strong> ' + escapeHtml(headBy[student.id] || '') + '</p><div class="baby-signatures-stack"><div class="baby-sign-row"><span>Signature:</span><span class="sig-line"></span></div><div class="baby-sign-row"><span>Signature:</span><span class="sig-line"></span></div></div></div>' + (period === 'end' ? '<p class="baby-next-term">Next term begins: <span>' + escapeHtml(nextTermBegins || '—') + '</span></p>' : '') + '</div></div>';
   }
@@ -1047,13 +1185,23 @@
     const period = periodSel.value;
     const sid = learnerSel.value;
     status.textContent = 'Loading...';
+    const comparisonPeriod = (cl === 'primary1' || cl === 'primary2') && period === 'mid'
+      ? 'begin'
+      : (cl === 'primary1' || cl === 'primary2') && period === 'end'
+      ? 'mid'
+      : '';
     const qBase = 'classLevel=' + encodeURIComponent(cl) + '&stream=' + encodeURIComponent(stream) + '&term=' + encodeURIComponent(term) + '&period=' + encodeURIComponent(period);
-    const [valRes, comRes, marksRes, headRes, ctRes] = await Promise.all([
+    const qComparison = comparisonPeriod
+      ? 'classLevel=' + encodeURIComponent(cl) + '&stream=' + encodeURIComponent(stream) + '&term=' + encodeURIComponent(term) + '&period=' + encodeURIComponent(comparisonPeriod)
+      : '';
+    if ((cl === 'primary1' || cl === 'primary2') && !gradingBands.length) await loadGradingBands();
+    const [valRes, comRes, marksRes, headRes, ctRes, comparisonMarksRes] = await Promise.all([
       fetch('/api/report-validate?' + qBase),
       fetch('/api/comments?' + qBase),
       fetch('/api/marks?' + qBase),
       fetch('/api/head-comments?' + qBase),
       fetch('/api/class-teacher-comments?' + qBase),
+      comparisonPeriod ? fetch('/api/marks?' + qComparison) : Promise.resolve(null),
     ]);
     if (!valRes.ok) {
       status.textContent = 'Could not load report data.';
@@ -1062,6 +1210,7 @@
     const val = await valRes.json();
     const comments = comRes.ok ? await comRes.json().catch(() => []) : [];
     const marks = marksRes.ok ? await marksRes.json().catch(() => []) : [];
+    const comparisonMarks = comparisonMarksRes && comparisonMarksRes.ok ? await comparisonMarksRes.json().catch(() => []) : [];
     const head = headRes.ok ? await headRes.json().catch(() => []) : [];
     const ct = ctRes.ok ? await ctRes.json().catch(() => []) : [];
 
@@ -1083,6 +1232,7 @@
     const student = directorReportLearners.find((r) => String(r.id) === String(sid));
     const byC = {};
     const byM = {};
+    const comparisonByM = {};
     const ctBy = {};
     const headBy = {};
     (comments || []).forEach((r) => {
@@ -1093,6 +1243,10 @@
       if (String(r.student_id) !== String(sid)) return;
       byM[r.student_id + '\t' + r.subject] = r;
     });
+    (comparisonMarks || []).forEach((r) => {
+      if (String(r.student_id) !== String(sid)) return;
+      comparisonByM[r.student_id + '\t' + r.subject] = r;
+    });
     (ct || []).forEach((r) => {
       if (String(r.student_id) === String(sid)) ctBy[r.student_id] = r.body || '';
     });
@@ -1100,6 +1254,7 @@
       if (String(r.student_id) === String(sid)) headBy[r.student_id] = r.body || '';
     });
     let nextTermBegins = '';
+    let reportSettings = null;
     try {
       const su = new URL('/api/report-settings', window.location.origin);
       su.searchParams.set('classLevel', cl);
@@ -1107,12 +1262,14 @@
       const sr = await fetch(su.toString());
       if (sr.ok) {
         const sj = await sr.json().catch(() => ({}));
+        reportSettings = sj;
         nextTermBegins = sj.nextTermBegins || '';
       }
     } catch (_) {}
     outPrev.innerHTML = student
-      ? buildDirectorReportHtml(student, cl, stream, term, period, byC, byM, ctBy, headBy, nextTermBegins)
+      ? buildDirectorReportHtml(student, cl, stream, term, period, byC, byM, ctBy, headBy, nextTermBegins, comparisonPeriod ? comparisonByM : null)
       : '<p class="dir-muted">Select learner.</p>';
+    applyExplorerReportSettings(reportSettings, outPrev);
     normalizeExplorerCommentSignatures(outPrev);
     status.textContent = 'Loaded.';
   }

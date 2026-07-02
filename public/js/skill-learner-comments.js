@@ -100,6 +100,20 @@
       ' — choose a class, then move learner to learner.';
   }
 
+  async function applySharedReportingContext() {
+    try {
+      let ctx =
+        window.__oceanSkillReportingContext && window.__oceanSkillReportingContext.get
+          ? window.__oceanSkillReportingContext.get()
+          : null;
+      if (!ctx && window.__oceanSkillReportingContext && window.__oceanSkillReportingContext.load) {
+        ctx = await window.__oceanSkillReportingContext.load();
+      }
+      if (ctx && ctx.term && elTerm) elTerm.value = String(ctx.term);
+      if (ctx && ctx.period && elPeriod) elPeriod.value = String(ctx.period);
+    } catch (_) {}
+  }
+
   function escapeHtml(s) {
     const d = document.createElement('div');
     d.textContent = s == null ? '' : String(s);
@@ -152,6 +166,15 @@
       weeklyRows = await fetchWeeklyBandsForStudent(s.id);
     }
     if (token !== quickBankFetchToken) return;
+    weeklyRows = Array.isArray(weeklyRows)
+      ? weeklyRows.filter(function (r) {
+          return String((r && r.band) || '').trim();
+        })
+      : [];
+    if (!weeklyRows.length) {
+      applyQuickCommentBank([]);
+      return;
+    }
     const name = s ? QC.learnerEnglishFirstName(s.full_name) : 'Learner';
     const summary = QC.summarizeWeeklyBands(weeklyRows);
     const items = QC.buildSubjectComments({
@@ -406,7 +429,8 @@
     moveIdx(-1);
   });
 
-  window.__oceanSkillCommentsInit = function () {
+  window.__oceanSkillCommentsInit = async function () {
+    await applySharedReportingContext();
     updatePeriodLabel();
     loadStudents();
   };

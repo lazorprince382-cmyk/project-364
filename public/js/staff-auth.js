@@ -242,11 +242,48 @@
     return isDirectorStaff(staff) || isHeadTeacherStaff(staff);
   }
 
-  /** Route director/head through classes sign-in before opening a class or skill workspace. */
-  function classWorkspaceSignInHref(targetUrl, presetKey) {
+  function classWorkspaceLabelForTarget(targetUrl, presetKey) {
     const kind = presetKey || 'class';
+    if (kind === 'skill') {
+      try {
+        const u = new URL(targetUrl, window.location.origin);
+        const skill = String(u.searchParams.get('skill') || '').trim().toLowerCase();
+        if (skill && typeof SKILL_SLUG_MAP === 'object' && SKILL_SLUG_MAP[skill]) return SKILL_SLUG_MAP[skill];
+      } catch (_) {}
+      return '';
+    }
+    const parsed = parseClassDashboardUrl(targetUrl);
+    if (!parsed || !parsed.classLevel) return '';
+    const classLabels = {
+      daycare: 'Day Care',
+      baby: 'Baby Class',
+      middle: 'Middle Class',
+      top: 'Top Class',
+      primary1: 'Primary One',
+      primary2: 'Primary Two',
+    };
+    const streamLabels = {
+      waves: 'Waves',
+      pearls: 'Pearls',
+      dolphins: 'Dolphins',
+      whales: 'Whales',
+    };
+    const base = classLabels[parsed.classLevel] || parsed.classLevel;
+    const stream = streamLabels[parsed.stream] || parsed.stream;
+    return stream ? base + ' - ' + stream : base;
+  }
+
+  /** Route director/head through classes sign-in before opening a class or skill workspace. */
+  function classWorkspaceSignInHref(targetUrl, presetKey, label) {
+    const kind = presetKey || 'class';
+    const q = new URLSearchParams({
+      signin: kind,
+      next: targetUrl,
+    });
+    const displayLabel = String(label || classWorkspaceLabelForTarget(targetUrl, kind) || '').trim();
+    if (displayLabel) q.set('label', displayLabel);
     return (
-      '/classes.html?signin=' + encodeURIComponent(kind) + '&next=' + encodeURIComponent(targetUrl)
+      '/classes.html?' + q.toString()
     );
   }
 

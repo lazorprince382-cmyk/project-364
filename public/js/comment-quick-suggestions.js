@@ -1660,6 +1660,8 @@
       seen[s] = true;
       unique.push({ snippet: s });
     });
+    bank.hidden = !unique.length;
+    bank.style.display = unique.length ? '' : 'none';
     if (!unique.length) {
       openBtn.disabled = true;
       openBtn.textContent = 'Suggested comments (save progress on Progress tab first)';

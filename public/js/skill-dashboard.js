@@ -83,6 +83,63 @@
   }
 
   const subjectName = meta.subject;
+  let sharedReportingContext = null;
+
+  function setSelectValueIfPossible(id, value) {
+    const el = document.getElementById(id);
+    if (!el || value == null || value === '') return;
+    const str = String(value);
+    if (el.querySelector('option[value="' + str.replace(/"/g, '\\"') + '"]')) el.value = str;
+  }
+
+  async function loadSharedReportingContext() {
+    try {
+      const res = await fetch('/api/reporting-context');
+      if (!res.ok) return null;
+      sharedReportingContext = await res.json().catch(function () {
+        return null;
+      });
+      return sharedReportingContext;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function applySharedReportingContext(ctx) {
+    const c = ctx || sharedReportingContext || {};
+    if (c.term) {
+      [
+        'filter-term',
+        'typed-notes-filter',
+        'note-term',
+        'spwk-term',
+        'sc-term',
+        'rp-term',
+        'hr-term',
+      ].forEach(function (id) {
+        setSelectValueIfPossible(id, c.term);
+      });
+    }
+    if (c.period) {
+      ['sc-period', 'rp-period', 'hr-period'].forEach(function (id) {
+        setSelectValueIfPossible(id, c.period);
+      });
+    }
+    if (c.year) {
+      const yearEl = document.getElementById('rp-year');
+      if (yearEl) yearEl.value = String(c.year);
+      const hrYear = document.getElementById('hr-year');
+      if (hrYear) hrYear.value = String(c.year);
+    }
+  }
+
+  window.__oceanSkillReportingContext = {
+    get: function () {
+      return sharedReportingContext;
+    },
+    load: loadSharedReportingContext,
+    apply: applySharedReportingContext,
+  };
 
   function isPrimaryLike(cl) {
     return String(cl || '').toLowerCase().indexOf('primary') === 0;
@@ -913,16 +970,25 @@
   const skillNotesSaveBtn = document.getElementById('skill-notes-save');
   if (skillNotesSaveBtn) skillNotesSaveBtn.addEventListener('click', saveSkillWorkspaceNotes);
   updateNotifUi();
-  refreshSkillStats().then(function () {
-    return loadDocuments();
-  });
-  loadSkillWorkspaceNotes();
-  initSkillReportClassPickers();
-  setTimeout(function () {
-    if (window.OceanClassReports && typeof window.OceanClassReports.init === 'function') {
-      window.OceanClassReports.init();
-    }
-  }, 0);
+
+  loadSharedReportingContext()
+    .then(function (ctx) {
+      applySharedReportingContext(ctx);
+    })
+    .finally(function () {
+      updateUploadUi();
+      refreshSkillStats().then(function () {
+        return loadDocuments();
+      });
+      loadSkillWorkspaceNotes();
+      initSkillReportClassPickers();
+      setTimeout(function () {
+        applySharedReportingContext();
+        if (window.OceanClassReports && typeof window.OceanClassReports.init === 'function') {
+          window.OceanClassReports.init();
+        }
+      }, 0);
+    });
 
   setTimeout(function () {
     const staffDm = auth && auth.getStoredStaff ? auth.getStoredStaff() : null;

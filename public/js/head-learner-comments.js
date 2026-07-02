@@ -78,6 +78,18 @@
     return period === 'mid' ? 'Mid' : 'End';
   }
 
+  async function applySharedReportingContext() {
+    try {
+      const res = await fetch('/api/reporting-context');
+      if (!res.ok) return;
+      const ctx = await res.json().catch(function () {
+        return {};
+      });
+      if (ctx && ctx.term && elTerm) elTerm.value = String(ctx.term);
+      if (ctx && ctx.period && elPeriod) elPeriod.value = String(ctx.period);
+    } catch (_) {}
+  }
+
   function updatePeriodLabel() {
     const t = elTerm.value;
     const p = elPeriod.value;
@@ -548,7 +560,8 @@
     if (ok) moveIdx(-1);
   });
 
-  window.__oceanHeadCommentsInit = function () {
+  window.__oceanHeadCommentsInit = async function () {
+    await applySharedReportingContext();
     updatePeriodLabel();
     loadStudents();
   };

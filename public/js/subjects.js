@@ -22,7 +22,7 @@
       'Drawing and Shading',
       'General Knowledge',
       'Social Development',
-      'Rhythms and Songs',
+      'Rhymes and songs',
       'Health Habits',
     ],
     baby: [
