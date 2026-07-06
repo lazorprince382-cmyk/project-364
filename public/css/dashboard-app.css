@@ -3182,6 +3182,67 @@ body.app-director .dash-notify-btn:disabled {
     break-after: auto;
   }
 
+  body.app-dash.is-report-printing,
+  body.app-dash.is-report-printing .dash-shell,
+  body.app-dash.is-report-printing .dash-main,
+  body.app-dash.is-report-printing .dash-main-inner,
+  body.app-dash.is-report-printing #panel-reports,
+  body.app-dash.is-report-printing #rp-current-view {
+    display: block !important;
+    width: 210mm !important;
+    min-width: 210mm !important;
+    max-width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body.app-dash.is-report-printing #panel-reports > h3,
+  body.app-dash.is-report-printing #panel-reports > div:not(#rp-current-view),
+  body.app-dash.is-report-printing #rp-current-view > :not(#rp-template),
+  body.app-dash.is-report-printing #rp-history-view {
+    display: none !important;
+  }
+
+  body.app-dash.is-report-printing #rp-template {
+    display: block !important;
+    position: static !important;
+    width: 210mm !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body.app-dash.is-report-printing #rp-template .report-stack {
+    display: block !important;
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.app-dash.is-report-printing #rp-template .report-stack-item {
+    display: block !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    page-break-after: always;
+    break-after: page;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  body.app-dash.is-report-printing #rp-template .report-stack-item:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
   body.app-dash #panel-reports .report-drag-handle {
     display: none !important;
   }
@@ -3226,23 +3287,15 @@ body.app-director .dash-notify-btn:disabled {
     color: #000;
   }
 
-  body.app-dash.is-report-printing * {
-    visibility: hidden !important;
-  }
-
-  body.app-dash.is-report-printing #rp-template,
-  body.app-dash.is-report-printing #rp-template * {
-    visibility: visible !important;
-  }
-
-  body.app-dash.is-report-printing #rp-template {
-    position: absolute !important;
-    inset: 0 auto auto 0 !important;
-    width: 210mm !important;
-    min-height: 297mm !important;
+  body.app-dash.is-report-printing #rp-template .baby-report-card,
+  body.app-dash.is-report-printing #rp-template .primary-report-card {
+    transform: none !important;
+    transform-origin: top left !important;
     margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
+    box-shadow: none !important;
+    outline: none !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 }
 

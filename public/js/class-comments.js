@@ -2670,7 +2670,7 @@
       }
       const rect = renderNode.getBoundingClientRect();
       return window.html2canvas(renderNode, {
-        scale: 3,
+        scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
@@ -2688,7 +2688,7 @@
 
   function addA4CanvasToPdf(pdf, canvas, pageIndex) {
     if (pageIndex > 0) pdf.addPage('a4', 'portrait');
-    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 210, 297, undefined, 'MEDIUM');
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
   }
 
   async function findFallbackBabyTemplatePath() {
@@ -2862,7 +2862,7 @@
       };
       window.addEventListener('afterprint', cleanup);
       window.print();
-      setTimeout(cleanup, 1200);
+      setTimeout(cleanup, 60000);
     });
   }
   if (rpMenuToggle && rpActionsWrap) {
@@ -3568,9 +3568,6 @@
       });
       currentReportSettings = finalSettings;
       if (ctx.flash) ctx.flash('Template layout saved for this class.', true);
-      syncReportCustomizePanel(finalSettings);
-      await refreshReportTemplate();
-      currentReportSettings = finalSettings;
       syncReportCustomizePanel(finalSettings);
       applyReportScale(finalSettings.fontScale);
       applyReportTemplateCustomization(finalSettings);
