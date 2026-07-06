@@ -410,11 +410,44 @@
     return x;
   }
 
+  const PRIMARY_AGGREGATE_SUBJECT_KEYS = ['mathematics', 'english', 'literacy1a', 'literacy1b'];
+
+  function primarySubjectKey(subject) {
+    return String(subject || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  function primaryAggregateSubjectRank(subject) {
+    return PRIMARY_AGGREGATE_SUBJECT_KEYS.indexOf(primarySubjectKey(subject));
+  }
+
+  function isPrimaryAggregateSubject(subject) {
+    return primaryAggregateSubjectRank(subject) !== -1;
+  }
+
+  function orderedPrimaryAcademicSubjects(subjects) {
+    return (subjects || [])
+      .filter(function (s) {
+        return skillList.indexOf(s) === -1;
+      })
+      .map(function (subject, index) {
+        return { subject: subject, index: index, rank: primaryAggregateSubjectRank(subject) };
+      })
+      .sort(function (a, b) {
+        const ar = a.rank === -1 ? 999 : a.rank;
+        const br = b.rank === -1 ? 999 : b.rank;
+        if (ar !== br) return ar - br;
+        return a.index - b.index;
+      })
+      .map(function (item) {
+        return item.subject;
+      });
+  }
+
   /** Same logic as server lib/primaryDivision.js — DIV from total grades, not per band */
   function primaryAggregateFromMarkRowsLocal(rows) {
     const grades = [];
     (rows || []).forEach(function (r) {
-      if (skillList.indexOf(r.subject) !== -1) return;
+      if (!isPrimaryAggregateSubject(r.subject)) return;
       const g = parseAggDigit(r.agg);
       if (g != null) grades.push(g);
     });
@@ -2011,9 +2044,7 @@
     if (isPrimary) {
       const termLabel = reportTermHeading(period, term, reportYear);
       const subjectOrder = (ctx.subjects || []).slice();
-      const academicSubjects = subjectOrder.filter(function (s) {
-        return skillList.indexOf(s) === -1;
-      });
+      const academicSubjects = orderedPrimaryAcademicSubjects(subjectOrder);
       const skillSubjects = subjectOrder.filter(function (s) {
         return skillList.indexOf(s) !== -1;
       });
@@ -2026,6 +2057,7 @@
       function reportMarkRow(map, sub) {
         const m = (map && map[student.id + '\t' + sub]) || {};
         const scored = m.marks_scored != null ? Number(m.marks_scored) : null;
+        const countsForAggregate = isPrimaryAggregateSubject(sub);
         const currentGrade = Number.isFinite(scored) && gradingBands.length
           ? gradeFromPercentClient(scored, gradingBands)
           : { agg: m.agg || '', remark: m.remark || '' };
@@ -2033,9 +2065,10 @@
           subject: sub,
           fullMarks: 100,
           scored: scored,
-          agg: currentGrade.agg || '',
-          remark: currentGrade.remark || '',
+          agg: countsForAggregate ? currentGrade.agg || '' : '',
+          remark: countsForAggregate ? currentGrade.remark || '' : '',
           initials: m.initials || '',
+          countsForAggregate: countsForAggregate,
         };
       }
       const academicRows = academicSubjects.map(function (sub) {
@@ -2047,26 +2080,32 @@
       const comparisonRows = hasComparison
         ? academicSubjects.map(function (sub) { return reportMarkRow(comparisonByM, sub); })
         : [];
-      const totalScored = academicRows.reduce(function (sum, r) {
+      const aggregateRows = academicRows.filter(function (r) { return r.countsForAggregate; });
+      const comparisonAggregateRows = comparisonRows.filter(function (r) { return r.countsForAggregate; });
+      const beginAggregateRows = beginRows.filter(function (r) { return r.countsForAggregate; });
+      const totalScored = aggregateRows.reduce(function (sum, r) {
         return sum + (Number.isFinite(r.scored) ? r.scored : 0);
       }, 0);
       const aggregateInfo = primaryAggregateFromMarkRowsLocal(
-        academicRows.map(function (r) {
+        aggregateRows.map(function (r) {
           return { subject: r.subject, agg: r.agg };
         })
       );
-      const comparisonTotalScored = comparisonRows.reduce(function (sum, r) {
+      const comparisonTotalScored = comparisonAggregateRows.reduce(function (sum, r) {
         return sum + (Number.isFinite(r.scored) ? r.scored : 0);
       }, 0);
       const comparisonAggregateInfo = primaryAggregateFromMarkRowsLocal(
-        comparisonRows.map(function (r) { return { subject: r.subject, agg: r.agg }; })
+        comparisonAggregateRows.map(function (r) { return { subject: r.subject, agg: r.agg }; })
       );
-      const beginTotalScored = beginRows.reduce(function (sum, r) {
+      const beginTotalScored = beginAggregateRows.reduce(function (sum, r) {
         return sum + (Number.isFinite(r.scored) ? r.scored : 0);
       }, 0);
       const beginAggregateInfo = primaryAggregateFromMarkRowsLocal(
-        beginRows.map(function (r) { return { subject: r.subject, agg: r.agg }; })
+        beginAggregateRows.map(function (r) { return { subject: r.subject, agg: r.agg }; })
       );
+      const totalFullMarks = aggregateRows.length * 100;
+      const comparisonFullMarks = comparisonAggregateRows.length * 100;
+      const beginFullMarks = beginAggregateRows.length * 100;
       function periodCells(row) {
         return '<td class="num">100</td>' +
           '<td class="num">' + escapeHtml(Number.isFinite(row.scored) ? String(row.scored) : '') + '</td>' +
@@ -2088,6 +2127,9 @@
           );
         })
         .join('');
+      beginRows.length = beginAggregateRows.length;
+      comparisonRows.length = comparisonAggregateRows.length;
+      academicRows.length = aggregateRows.length;
       const skillsRowsHtml = skillSubjects
         .map(function (sub) {
           return (
@@ -2105,7 +2147,7 @@
         ? '<thead><tr class="period-head"><th rowspan="2">Subject</th><th colspan="4">' + escapeHtml(firstPeriodLabel) + '</th><th colspan="4">' + escapeHtml(secondPeriodLabel) + '</th><th colspan="4">' + escapeHtml(thirdPeriodLabel) + '</th><th rowspan="2">Initials</th></tr><tr class="period-subhead"><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th></tr></thead>'
         : '<thead><tr class="period-head"><th rowspan="2">Subject</th><th colspan="4">' + escapeHtml(firstPeriodLabel) + '</th><th colspan="4">' + escapeHtml(secondPeriodLabel) + '</th><th rowspan="2">Initials</th></tr><tr class="period-subhead"><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th><th>Full Marks</th><th>Marks Scored</th><th>Grade</th><th>Remark</th></tr></thead>';
       const totalRowHtml = hasThreeTerm
-        ? '<tr class="total-row"><td>TOTAL</td><td class="num">' + escapeHtml(String(beginRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(beginTotalScored)) + '</td><td class="num">' + escapeHtml(beginAggregateInfo.sum != null ? String(beginAggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(beginAggregateInfo.division || '-') + '</td><td class="num">' + escapeHtml(String(comparisonRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(comparisonTotalScored)) + '</td><td class="num">' + escapeHtml(comparisonAggregateInfo.sum != null ? String(comparisonAggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(comparisonAggregateInfo.division || '-') + '</td><td class="num">' + escapeHtml(String(academicRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(totalScored)) + '</td><td class="num">' + escapeHtml(aggregateInfo.sum != null ? String(aggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(aggregateInfo.division || '-') + '</td><td></td></tr>'
+        ? '<tr class="total-row"><td>TOTAL</td><td class="num">' + escapeHtml(String(beginAggregateRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(beginTotalScored)) + '</td><td class="num">' + escapeHtml(beginAggregateInfo.sum != null ? String(beginAggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(beginAggregateInfo.division || '-') + '</td><td class="num">' + escapeHtml(String(comparisonAggregateRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(comparisonTotalScored)) + '</td><td class="num">' + escapeHtml(comparisonAggregateInfo.sum != null ? String(comparisonAggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(comparisonAggregateInfo.division || '-') + '</td><td class="num">' + escapeHtml(String(aggregateRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(totalScored)) + '</td><td class="num">' + escapeHtml(aggregateInfo.sum != null ? String(aggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(aggregateInfo.division || '-') + '</td><td></td></tr>'
         : null;
       return (
         '<div class="primary-report-card">' +

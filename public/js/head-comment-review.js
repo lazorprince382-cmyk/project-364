@@ -210,10 +210,20 @@
     return x;
   }
 
+  const PRIMARY_AGGREGATE_SUBJECT_KEYS = ['mathematics', 'english', 'literacy1a', 'literacy1b'];
+
+  function primarySubjectKey(subject) {
+    return String(subject || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  function isPrimaryAggregateSubject(subject) {
+    return PRIMARY_AGGREGATE_SUBJECT_KEYS.indexOf(primarySubjectKey(subject)) !== -1;
+  }
+
   function primaryAggregateFromMarkRowsLocal(rows) {
     const grades = [];
     (rows || []).forEach(function (r) {
-      if (skillList.indexOf(r.subject) !== -1) return;
+      if (!isPrimaryAggregateSubject(r.subject)) return;
       const g = parseAggDigit(r.agg);
       if (g != null) grades.push(g);
     });

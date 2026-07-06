@@ -674,10 +674,39 @@
     return x;
   }
 
+  const PRIMARY_AGGREGATE_SUBJECT_KEYS = ['mathematics', 'english', 'literacy1a', 'literacy1b'];
+
+  function primarySubjectKey(subject) {
+    return String(subject || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  function primaryAggregateSubjectRank(subject) {
+    return PRIMARY_AGGREGATE_SUBJECT_KEYS.indexOf(primarySubjectKey(subject));
+  }
+
+  function isPrimaryAggregateSubject(subject) {
+    return primaryAggregateSubjectRank(subject) !== -1;
+  }
+
+  function orderedPrimaryAcademicSubjects(subjects, skillList) {
+    return (subjects || [])
+      .filter(function (s) { return skillList.indexOf(s) === -1; })
+      .map(function (subject, index) {
+        return { subject: subject, index: index, rank: primaryAggregateSubjectRank(subject) };
+      })
+      .sort(function (a, b) {
+        const ar = a.rank === -1 ? 999 : a.rank;
+        const br = b.rank === -1 ? 999 : b.rank;
+        if (ar !== br) return ar - br;
+        return a.index - b.index;
+      })
+      .map(function (item) { return item.subject; });
+  }
+
   function primaryAggregateFromMarkRowsLocal(rows, skillList) {
     const grades = [];
     (rows || []).forEach(function (r) {
-      if (skillList.indexOf(r.subject) !== -1) return;
+      if (!isPrimaryAggregateSubject(r.subject)) return;
       const g = parseAggDigit(r.agg);
       if (g != null) grades.push(g);
     });
@@ -775,7 +804,7 @@
     const subjects = (window.OCEAN_SUBJECTS && window.OCEAN_SUBJECTS[classLevel]) || [];
     const classLabel = humanClassLevel(classLevel) + (stream ? ' (' + stream + ')' : '');
     const termLabel = reportTermHeading(period, term, new Date().getFullYear());
-    const academicSubjects = subjects.filter(function (s) { return skillList.indexOf(s) === -1; });
+    const academicSubjects = orderedPrimaryAcademicSubjects(subjects, skillList);
     const skillSubjects = subjects.filter(function (s) { return skillList.indexOf(s) !== -1; });
     const beginByM = comparisonByM && comparisonByM.__beginByM ? comparisonByM.__beginByM : null;
     const hasThreeTerm = period === 'end' && comparisonByM;
@@ -786,15 +815,17 @@
     function reportMarkRow(map, sub) {
       const m = (map && map[student.id + '\t' + sub]) || {};
       const scored = m.marks_scored != null ? Number(m.marks_scored) : null;
+      const countsForAggregate = isPrimaryAggregateSubject(sub);
       const grade = Number.isFinite(scored) && gradingBands.length
         ? gradeFromPercentClient(scored, gradingBands)
         : { agg: m.agg || '', remark: m.remark || '' };
       return {
         subject: sub,
         scored: scored,
-        agg: grade.agg || '',
-        remark: grade.remark || '',
+        agg: countsForAggregate ? grade.agg || '' : '',
+        remark: countsForAggregate ? grade.remark || '' : '',
         initials: m.initials || '',
+        countsForAggregate: countsForAggregate,
       };
     }
     const academicRows = academicSubjects.map(function (sub) { return reportMarkRow(byM, sub); });
@@ -804,12 +835,15 @@
     const comparisonRows = hasComparison
       ? academicSubjects.map(function (sub) { return reportMarkRow(comparisonByM, sub); })
       : [];
-    const totalScored = academicRows.reduce(function (sum, r) { return sum + (Number.isFinite(r.scored) ? r.scored : 0); }, 0);
-    const comparisonTotalScored = comparisonRows.reduce(function (sum, r) { return sum + (Number.isFinite(r.scored) ? r.scored : 0); }, 0);
-    const beginTotalScored = beginRows.reduce(function (sum, r) { return sum + (Number.isFinite(r.scored) ? r.scored : 0); }, 0);
-    const aggregateInfo = primaryAggregateFromMarkRowsLocal(academicRows.map(function (r) { return { subject: r.subject, agg: r.agg }; }), skillList);
-    const comparisonAggregateInfo = primaryAggregateFromMarkRowsLocal(comparisonRows.map(function (r) { return { subject: r.subject, agg: r.agg }; }), skillList);
-    const beginAggregateInfo = primaryAggregateFromMarkRowsLocal(beginRows.map(function (r) { return { subject: r.subject, agg: r.agg }; }), skillList);
+    const aggregateRows = academicRows.filter(function (r) { return r.countsForAggregate; });
+    const comparisonAggregateRows = comparisonRows.filter(function (r) { return r.countsForAggregate; });
+    const beginAggregateRows = beginRows.filter(function (r) { return r.countsForAggregate; });
+    const totalScored = aggregateRows.reduce(function (sum, r) { return sum + (Number.isFinite(r.scored) ? r.scored : 0); }, 0);
+    const comparisonTotalScored = comparisonAggregateRows.reduce(function (sum, r) { return sum + (Number.isFinite(r.scored) ? r.scored : 0); }, 0);
+    const beginTotalScored = beginAggregateRows.reduce(function (sum, r) { return sum + (Number.isFinite(r.scored) ? r.scored : 0); }, 0);
+    const aggregateInfo = primaryAggregateFromMarkRowsLocal(aggregateRows.map(function (r) { return { subject: r.subject, agg: r.agg }; }), skillList);
+    const comparisonAggregateInfo = primaryAggregateFromMarkRowsLocal(comparisonAggregateRows.map(function (r) { return { subject: r.subject, agg: r.agg }; }), skillList);
+    const beginAggregateInfo = primaryAggregateFromMarkRowsLocal(beginAggregateRows.map(function (r) { return { subject: r.subject, agg: r.agg }; }), skillList);
     function periodCells(row) {
       return '<td class="num">100</td><td class="num">' + escapeHtml(Number.isFinite(row.scored) ? String(row.scored) : '') + '</td><td class="num">' + escapeHtml(row.agg || '') + '</td><td>' + escapeHtml(row.remark || '') + '</td>';
     }
@@ -822,6 +856,9 @@
         periodCells(r) +
         '<td class="num">' + escapeHtml(r.initials || '') + '</td></tr>';
     }).join('');
+    beginRows.length = beginAggregateRows.length;
+    comparisonRows.length = comparisonAggregateRows.length;
+    academicRows.length = aggregateRows.length;
     const totalRow = hasThreeTerm
       ? '<tr class="total-row"><td>TOTAL</td><td class="num">' + escapeHtml(String(beginRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(beginTotalScored)) + '</td><td class="num">' + escapeHtml(beginAggregateInfo.sum != null ? String(beginAggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(beginAggregateInfo.division || '-') + '</td><td class="num">' + escapeHtml(String(comparisonRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(comparisonTotalScored)) + '</td><td class="num">' + escapeHtml(comparisonAggregateInfo.sum != null ? String(comparisonAggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(comparisonAggregateInfo.division || '-') + '</td><td class="num">' + escapeHtml(String(academicRows.length * 100)) + '</td><td class="num">' + escapeHtml(String(totalScored)) + '</td><td class="num">' + escapeHtml(aggregateInfo.sum != null ? String(aggregateInfo.sum) : '') + '</td><td>DIV - ' + escapeHtml(aggregateInfo.division || '-') + '</td><td></td></tr>'
       : hasComparison
@@ -847,7 +884,7 @@
     const termLabel = reportTermHeading(period, term, new Date().getFullYear());
     if (isPrimary) {
       return buildPrimaryExplorerReportHtml(student, classLevel, stream, term, period, byC, byM, ctBy, headBy, nextTermBegins, comparisonByM);
-      const academicSubjects = subjects.filter(function (s) { return skillList.indexOf(s) === -1; });
+      const academicSubjects = orderedPrimaryAcademicSubjects(subjects, skillList);
       const skillSubjects = subjects.filter(function (s) { return skillList.indexOf(s) !== -1; });
       const academicRows = academicSubjects.map(function (sub) {
         const m = byM[student.id + '\t' + sub] || {};
