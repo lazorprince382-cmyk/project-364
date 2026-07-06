@@ -2853,11 +2853,48 @@
   }
   if (rpPeriod) rpPeriod.addEventListener('change', refreshReportTemplate);
   if (rpStudent) rpStudent.addEventListener('change', refreshReportTemplate);
+  function removeReportPrintHost() {
+    const existing = document.getElementById('report-print-host');
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+  }
+  function prepareReportPrintHost() {
+    removeReportPrintHost();
+    const source = document.getElementById('rp-template');
+    if (!source) return false;
+    const cards = source.querySelectorAll('.baby-report-card, .primary-report-card');
+    if (!cards.length) return false;
+    const host = document.createElement('div');
+    host.id = 'report-print-host';
+    host.className = 'report-print-host';
+    Array.prototype.forEach.call(cards, function (card) {
+      const page = document.createElement('div');
+      page.className = 'report-print-page';
+      const clone = card.cloneNode(true);
+      clone.classList.remove('is-dragging', 'report-edit-target', 'report-dragging', 'report-drag-over');
+      clone.style.transform = 'none';
+      clone.style.transformOrigin = 'top left';
+      Array.prototype.forEach.call(clone.querySelectorAll('.report-drag-handle'), function (handle) {
+        handle.remove();
+      });
+      Array.prototype.forEach.call(clone.querySelectorAll('.is-dragging, .report-edit-target, .report-dragging, .report-drag-over'), function (el) {
+        el.classList.remove('is-dragging', 'report-edit-target', 'report-dragging', 'report-drag-over');
+      });
+      page.appendChild(clone);
+      host.appendChild(page);
+    });
+    document.body.appendChild(host);
+    return true;
+  }
   if (rpPrint) {
     rpPrint.addEventListener('click', function () {
+      if (!prepareReportPrintHost()) {
+        if (ctx.flash) ctx.flash('No report on screen to print.', false);
+        return;
+      }
       document.body.classList.add('is-report-printing');
       const cleanup = function () {
         document.body.classList.remove('is-report-printing');
+        removeReportPrintHost();
         window.removeEventListener('afterprint', cleanup);
       };
       window.addEventListener('afterprint', cleanup);
