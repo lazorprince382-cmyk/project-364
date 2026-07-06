@@ -980,7 +980,8 @@
   }
 
   function parseAggDigit(agg) {
-    const x = parseInt(String(agg == null ? '' : agg).trim(), 10);
+    const match = String(agg == null ? '' : agg).trim().match(/[1-9]/);
+    const x = match ? Number(match[0]) : NaN;
     if (Number.isNaN(x) || x < 1 || x > 9) return null;
     return x;
   }
