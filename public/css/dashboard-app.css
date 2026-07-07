@@ -2445,6 +2445,7 @@ body.app-director .dash-notify-btn:disabled {
   --rp-photo-scale: 1;
   --rp-photo-offset-x-in: 0;
   --rp-photo-offset-y-in: 0;
+  --rp-title-scale: 1;
   --rp-heading-scale: 1;
   --rp-comment-scale: 1;
   background: #fff;
@@ -2471,6 +2472,7 @@ body.app-director .dash-notify-btn:disabled {
   --rp-photo-scale: 1;
   --rp-photo-offset-x-in: 0;
   --rp-photo-offset-y-in: 0;
+  --rp-title-scale: 1;
   --rp-heading-scale: 1;
   --rp-comment-scale: 1;
   background: #fff;
@@ -2701,7 +2703,7 @@ body.app-director .dash-notify-btn:disabled {
 
 .baby-school-title-image {
   display: block;
-  width: 145mm;
+  width: calc(145mm * var(--rp-title-scale, 1));
   max-width: 100%;
   margin: 0 auto;
 }
@@ -2813,7 +2815,7 @@ body.app-director .dash-notify-btn:disabled {
 }
 
 .baby-report-card.middle-report-card .baby-school-title-image {
-  width: 136mm;
+  width: calc(136mm * var(--rp-title-scale, 1));
 }
 
 .baby-report-card.middle-report-card .baby-kicker {

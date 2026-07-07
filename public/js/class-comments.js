@@ -1544,6 +1544,7 @@
       photoScale: 1,
       photoOffsetXIn: 0,
       photoOffsetYIn: 0,
+      titleScale: 1,
       headingScale: 1,
       commentFontScale: 1,
     };
@@ -1585,6 +1586,7 @@
       photoScale: clampPhotoScale(src.photoScale),
       photoOffsetXIn: clampPhotoOffsetXIn(src.photoOffsetXIn),
       photoOffsetYIn: clampPhotoOffsetYIn(src.photoOffsetYIn),
+      titleScale: clampSectionFontScale(src.titleScale),
       headingScale: clampSectionFontScale(src.headingScale),
       commentFontScale: clampSectionFontScale(src.commentFontScale),
     };
@@ -1741,6 +1743,7 @@
       card.style.setProperty('--rp-photo-scale', String(normalized.layout.photoScale || 1));
       card.style.setProperty('--rp-photo-offset-x-in', String(normalized.layout.photoOffsetXIn || 0));
       card.style.setProperty('--rp-photo-offset-y-in', String(normalized.layout.photoOffsetYIn || 0));
+      card.style.setProperty('--rp-title-scale', String(normalized.layout.titleScale || 1));
       card.style.setProperty('--rp-heading-scale', String(normalized.layout.headingScale || 1));
       card.style.setProperty('--rp-comment-scale', String(normalized.layout.commentFontScale || 1));
       const commentsBlock = card.querySelector('.baby-bottom-comments, .primary-comments, .report-comments');
@@ -1777,6 +1780,8 @@
     if (rpPhotoXValue) rpPhotoXValue.textContent = reportInchLabel(normalized.photoOffsetXIn || 0);
     if (rpPhotoYRange) rpPhotoYRange.value = String(normalized.photoOffsetYIn || 0);
     if (rpPhotoYValue) rpPhotoYValue.textContent = reportInchLabel(normalized.photoOffsetYIn || 0);
+    if (rpTitleRange) rpTitleRange.value = String(normalized.titleScale || 1);
+    if (rpTitleRangeValue) rpTitleRangeValue.textContent = reportFontScaleLabel(normalized.titleScale || 1);
     if (rpHeadingRange) rpHeadingRange.value = String(normalized.headingScale || 1);
     if (rpHeadingRangeValue) rpHeadingRangeValue.textContent = reportFontScaleLabel(normalized.headingScale || 1);
     if (rpCommentsFontRange) rpCommentsFontRange.value = String(normalized.commentFontScale || 1);
@@ -2067,7 +2072,7 @@
           fullMarks: 100,
           scored: scored,
           agg: countsForAggregate ? currentGrade.agg || '' : '',
-          remark: countsForAggregate ? currentGrade.remark || '' : '',
+          remark: currentGrade.remark || m.remark || '',
           initials: m.initials || '',
           countsForAggregate: countsForAggregate,
         };
@@ -2457,6 +2462,9 @@
     const settingsUrl = new URL('/api/report-settings', window.location.origin);
     settingsUrl.searchParams.set('classLevel', ctx.classLevel);
     if (ctx.stream) settingsUrl.searchParams.set('stream', ctx.stream);
+    if (studentEl.value && studentEl.value !== '__all__') {
+      settingsUrl.searchParams.set('studentId', studentEl.value);
+    }
     const settingRes = await fetch(settingsUrl.toString());
     let reportSettings = normalizeReportSettingsLocal({});
     if (settingRes.ok) {
@@ -2521,6 +2529,31 @@
       return s.id === selectedId;
     }) || roster[0];
     studentEl.value = allSelected ? '__all__' : String(selected.id);
+    if (studentEl.value !== '__all__' && settingsUrl.searchParams.get('studentId') !== studentEl.value) {
+      settingsUrl.searchParams.set('studentId', studentEl.value);
+      const scopedSettingRes = await fetch(settingsUrl.toString());
+      if (scopedSettingRes.ok) {
+        const scopedSettings = await scopedSettingRes.json().catch(function () {
+          return {};
+        });
+        reportSettings = normalizeReportSettingsLocal(scopedSettings);
+        currentReportSettings = reportSettings;
+        syncReportCustomizePanel(reportSettings);
+        nextTermBegins = reportSettings.nextTermBegins || '';
+        fontScale = reportSettings.fontScale != null ? Number(reportSettings.fontScale) : 1;
+        templatePath = reportSettings.templatePath || templatePath;
+        if (nextTermEl && document.activeElement !== nextTermEl) nextTermEl.value = nextTermBegins;
+        if (templateOpen) {
+          if (templatePath) {
+            templateOpen.href = templatePath;
+            templateOpen.style.display = '';
+          } else {
+            templateOpen.removeAttribute('href');
+            templateOpen.style.display = 'none';
+          }
+        }
+      }
+    }
 
     const fc = filterTermPeriod(allComments, term, period);
     const fm = filterTermPeriod(allMarks, term, period);
@@ -2805,6 +2838,8 @@
   const rpPhotoXValue = document.getElementById('rp-photo-x-value');
   const rpPhotoYRange = document.getElementById('rp-photo-y-range');
   const rpPhotoYValue = document.getElementById('rp-photo-y-value');
+  const rpTitleRange = document.getElementById('rp-title-range');
+  const rpTitleRangeValue = document.getElementById('rp-title-range-value');
   const rpHeadingRange = document.getElementById('rp-heading-range');
   const rpHeadingRangeValue = document.getElementById('rp-heading-range-value');
   const rpCommentsFontRange = document.getElementById('rp-comments-font-range');
@@ -3431,10 +3466,19 @@
       refreshReportTemplate();
     });
   }
-  async function getCurrentReportSettings() {
+  function selectedReportStudentId() {
+    return rpStudent && rpStudent.value && rpStudent.value !== '__all__' ? rpStudent.value : '';
+  }
+
+  async function getCurrentReportSettings(options) {
+    const scopedToStudent = options && options.studentScoped;
     const settingsUrl = new URL('/api/report-settings', window.location.origin);
     settingsUrl.searchParams.set('classLevel', ctx.classLevel);
     if (ctx.stream) settingsUrl.searchParams.set('stream', ctx.stream);
+    const studentId = selectedReportStudentId();
+    if (scopedToStudent && studentId) {
+      settingsUrl.searchParams.set('studentId', studentId);
+    }
     const res = await fetch(settingsUrl.toString());
     if (!res.ok) return normalizeReportSettingsLocal({});
     const data = await res.json().catch(function () {
@@ -3443,9 +3487,10 @@
     return normalizeReportSettingsLocal(data);
   }
 
-  async function saveReportSettingsPatch(patch) {
+  async function saveReportSettingsPatch(patch, options) {
+    const scopedToStudent = options && options.studentScoped;
     const seq = ++reportSettingsSaveSeq;
-    const current = await getCurrentReportSettings();
+    const current = await getCurrentReportSettings({ studentScoped: scopedToStudent });
     const merged = mergeReportSettingsLocal(current, patch || {});
     const payload = {
       classLevel: ctx.classLevel,
@@ -3456,6 +3501,10 @@
       fontFamily: merged.fontFamily || 'default',
       layout: merged.layout || defaultReportLayoutSettings(),
     };
+    const studentId = selectedReportStudentId();
+    if (scopedToStudent && studentId) {
+      payload.studentId = Number(studentId);
+    }
     const res = await fetch('/api/report-settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -3559,6 +3608,7 @@
         photoScale: rpPhotoSizeRange ? Number(rpPhotoSizeRange.value || 1) : base.layout.photoScale,
         photoOffsetXIn: rpPhotoXRange ? Number(rpPhotoXRange.value || 0) : base.layout.photoOffsetXIn,
         photoOffsetYIn: rpPhotoYRange ? Number(rpPhotoYRange.value || 0) : base.layout.photoOffsetYIn,
+        titleScale: rpTitleRange ? Number(rpTitleRange.value || 1) : base.layout.titleScale,
         headingScale: rpHeadingRange ? Number(rpHeadingRange.value || 1) : base.layout.headingScale,
         commentFontScale: rpCommentsFontRange ? Number(rpCommentsFontRange.value || 1) : base.layout.commentFontScale,
         commentGapMm: rpCommentGapRange
@@ -3581,6 +3631,7 @@
     if (rpPhotoSizeValue) rpPhotoSizeValue.textContent = reportFontScaleLabel(draft.layout.photoScale || 1);
     if (rpPhotoXValue) rpPhotoXValue.textContent = reportInchLabel(draft.layout.photoOffsetXIn || 0);
     if (rpPhotoYValue) rpPhotoYValue.textContent = reportInchLabel(draft.layout.photoOffsetYIn || 0);
+    if (rpTitleRangeValue) rpTitleRangeValue.textContent = reportFontScaleLabel(draft.layout.titleScale || 1);
     if (rpHeadingRangeValue) rpHeadingRangeValue.textContent = reportFontScaleLabel(draft.layout.headingScale || 1);
     if (rpCommentsFontRangeValue) rpCommentsFontRangeValue.textContent = reportFontScaleLabel(draft.layout.commentFontScale || 1);
     if (rpCommentGapValue) rpCommentGapValue.textContent = String(draft.layout.commentGapMm) + 'mm';
@@ -3609,7 +3660,7 @@
     });
   }
 
-  [rpFontRange, rpFontToolbarRange, rpSubjectOffsetX, rpSubjectOffsetY, rpCommentsOffsetX, rpCommentsOffsetY, rpBadgeRange, rpMetaRange, rpMetaXRange, rpMetaWidthRange, rpPhotoSizeRange, rpPhotoXRange, rpPhotoYRange, rpHeadingRange, rpCommentsFontRange, rpCommentGapRange].forEach(function (el) {
+  [rpFontRange, rpFontToolbarRange, rpSubjectOffsetX, rpSubjectOffsetY, rpCommentsOffsetX, rpCommentsOffsetY, rpBadgeRange, rpMetaRange, rpMetaXRange, rpMetaWidthRange, rpPhotoSizeRange, rpPhotoXRange, rpPhotoYRange, rpTitleRange, rpHeadingRange, rpCommentsFontRange, rpCommentGapRange].forEach(function (el) {
     if (!el) return;
     el.addEventListener('input', previewReportTemplateControls);
   });
@@ -3618,8 +3669,12 @@
     el.addEventListener('change', async function () {
       const draft = currentReportTemplateDraft();
       try {
-        await saveReportSettingsPatch({ fontScale: draft.fontScale });
-        currentReportSettings = mergeReportSettingsLocal(currentReportSettings || {}, { fontScale: draft.fontScale });
+        await saveReportSettingsPatch({
+          fontScale: draft.fontScale,
+          fontFamily: draft.fontFamily,
+          layout: draft.layout,
+        });
+        currentReportSettings = mergeReportSettingsLocal(currentReportSettings || {}, draft);
       } catch (_) {
         if (ctx.flash) ctx.flash('Could not save report font size.', false);
       }
@@ -3647,7 +3702,12 @@
         layout: draft.layout,
       });
       currentReportSettings = finalSettings;
-      if (ctx.flash) ctx.flash('Template layout saved for this class.', true);
+      if (ctx.flash) {
+        ctx.flash(
+          'Template layout saved for this class.',
+          true
+        );
+      }
       syncReportCustomizePanel(finalSettings);
       applyReportScale(finalSettings.fontScale);
       applyReportTemplateCustomization(finalSettings);
@@ -3675,17 +3735,31 @@
 
   if (rpFontDec) {
     rpFontDec.addEventListener('click', async function () {
-      const cur = await getCurrentReportSettings();
-      const n = Math.max(0.8, Math.min(1.6, (Number(cur.fontScale) || 1) - 0.05));
-      await saveReportSettingsPatch({ fontScale: n });
+      const draft = currentReportTemplateDraft();
+      const n = Math.max(0.8, Math.min(1.6, (Number(draft.fontScale) || 1) - 0.05));
+      if (rpFontRange) rpFontRange.value = String(n);
+      if (rpFontToolbarRange) rpFontToolbarRange.value = String(n);
+      const nextDraft = currentReportTemplateDraft();
+      await saveReportSettingsPatch({
+        fontScale: nextDraft.fontScale,
+        fontFamily: nextDraft.fontFamily,
+        layout: nextDraft.layout,
+      });
       refreshReportTemplate();
     });
   }
   if (rpFontInc) {
     rpFontInc.addEventListener('click', async function () {
-      const cur = await getCurrentReportSettings();
-      const n = Math.max(0.8, Math.min(1.6, (Number(cur.fontScale) || 1) + 0.05));
-      await saveReportSettingsPatch({ fontScale: n });
+      const draft = currentReportTemplateDraft();
+      const n = Math.max(0.8, Math.min(1.6, (Number(draft.fontScale) || 1) + 0.05));
+      if (rpFontRange) rpFontRange.value = String(n);
+      if (rpFontToolbarRange) rpFontToolbarRange.value = String(n);
+      const nextDraft = currentReportTemplateDraft();
+      await saveReportSettingsPatch({
+        fontScale: nextDraft.fontScale,
+        fontFamily: nextDraft.fontFamily,
+        layout: nextDraft.layout,
+      });
       refreshReportTemplate();
     });
   }
@@ -3728,7 +3802,7 @@
       }
     });
   }
-  [rpMetaRange, rpMetaXRange, rpMetaWidthRange, rpPhotoSizeRange, rpPhotoXRange, rpPhotoYRange, rpHeadingRange, rpCommentsFontRange].forEach(function (el) {
+  [rpMetaRange, rpMetaXRange, rpMetaWidthRange, rpPhotoSizeRange, rpPhotoXRange, rpPhotoYRange, rpTitleRange, rpHeadingRange, rpCommentsFontRange].forEach(function (el) {
     if (!el) return;
     el.addEventListener('change', async function () {
       const draft = currentReportTemplateDraft();

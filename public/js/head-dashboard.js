@@ -760,6 +760,7 @@
       if (layout.photoScale != null) card.style.setProperty('--rp-photo-scale', String(layout.photoScale));
       if (layout.photoOffsetXIn != null) card.style.setProperty('--rp-photo-offset-x-in', String(layout.photoOffsetXIn));
       if (layout.photoOffsetYIn != null) card.style.setProperty('--rp-photo-offset-y-in', String(layout.photoOffsetYIn));
+      if (layout.titleScale != null) card.style.setProperty('--rp-title-scale', String(layout.titleScale));
       if (layout.headingScale != null) card.style.setProperty('--rp-heading-scale', String(layout.headingScale));
       if (layout.commentFontScale != null) card.style.setProperty('--rp-comment-scale', String(layout.commentFontScale));
       const bodyBlock = card.querySelector('.baby-subjects-grid, .primary-report-body');
@@ -824,7 +825,7 @@
         subject: sub,
         scored: scored,
         agg: countsForAggregate ? grade.agg || '' : '',
-        remark: countsForAggregate ? grade.remark || '' : '',
+        remark: grade.remark || m.remark || '',
         initials: m.initials || '',
         countsForAggregate: countsForAggregate,
       };
@@ -998,6 +999,7 @@
       const su = new URL('/api/report-settings', window.location.origin);
       su.searchParams.set('classLevel', cl);
       if (stream) su.searchParams.set('stream', stream);
+      if (sid) su.searchParams.set('studentId', sid);
       const sr = await fetch(su.toString());
       if (sr.ok) {
         const sj = await sr.json().catch(function () { return {}; });

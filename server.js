@@ -4884,7 +4884,45 @@ app.get(
         ? String(req.query.stream).trim()
         : '';
     const key = `report_next_term_${classLevel}_${stream || '_'}`;
-    const { rows } = await pool.query(`SELECT value FROM app_settings WHERE key = $1`, [key]);
+    const sid =
+      req.query.studentId != null && String(req.query.studentId).trim()
+        ? Number(req.query.studentId)
+        : null;
+    const studentKey = sid && Number.isFinite(sid) ? `${key}_student_${sid}` : '';
+    const keys = studentKey ? [key, studentKey] : [key];
+    const { rows } = await pool.query(`SELECT key, value FROM app_settings WHERE key = ANY($1::text[])`, [keys]);
+    const classSettings = rows.find((r) => r.key === key && r.value && typeof r.value === 'object');
+    const studentSettings = studentKey
+      ? rows.find((r) => r.key === studentKey && r.value && typeof r.value === 'object')
+      : null;
+    let storedSettings = classSettings ? classSettings.value : null;
+    if (studentSettings) {
+      storedSettings = Object.assign({}, storedSettings || {}, studentSettings.value || {}, {
+        layout: Object.assign(
+          {},
+          storedSettings && storedSettings.layout && typeof storedSettings.layout === 'object' ? storedSettings.layout : {},
+          studentSettings.value && studentSettings.value.layout && typeof studentSettings.value.layout === 'object'
+            ? studentSettings.value.layout
+            : {}
+        ),
+      });
+    }
+    if (!storedSettings && stream) {
+      const fallbackKeyPrefix = `report_next_term_${classLevel}_%`;
+      const fb = await pool.query(
+        `SELECT value
+           FROM app_settings
+          WHERE key LIKE $1
+            AND key NOT LIKE '%\\_student\\_%' ESCAPE '\\'
+            AND value IS NOT NULL
+          ORDER BY updated_at DESC
+          LIMIT 1`,
+        [fallbackKeyPrefix]
+      );
+      if (fb.rows.length && fb.rows[0].value && typeof fb.rows[0].value === 'object') {
+        storedSettings = fb.rows[0].value;
+      }
+    }
     let nextTermBegins = '';
     let fontScale = 1;
     let templatePath = '';
@@ -4903,20 +4941,21 @@ app.get(
       photoScale: 1,
       photoOffsetXIn: 0,
       photoOffsetYIn: 0,
+      titleScale: 1,
       headingScale: 1,
       commentFontScale: 1,
     };
-    if (rows.length && rows[0].value && typeof rows[0].value === 'object') {
+    if (storedSettings && typeof storedSettings === 'object') {
       nextTermBegins =
-        rows[0].value.nextTermBegins != null ? String(rows[0].value.nextTermBegins) : '';
+        storedSettings.nextTermBegins != null ? String(storedSettings.nextTermBegins) : '';
       fontScale =
-        rows[0].value.fontScale != null ? Number(rows[0].value.fontScale) : 1;
+        storedSettings.fontScale != null ? Number(storedSettings.fontScale) : 1;
       if (Number.isNaN(fontScale) || fontScale < 0.8 || fontScale > 1.6) fontScale = 1;
       templatePath =
-        rows[0].value.templatePath != null ? String(rows[0].value.templatePath) : '';
+        storedSettings.templatePath != null ? String(storedSettings.templatePath) : '';
       fontFamily =
-        rows[0].value.fontFamily != null ? String(rows[0].value.fontFamily).trim() : 'default';
-      const rawLayout = rows[0].value.layout && typeof rows[0].value.layout === 'object' ? rows[0].value.layout : {};
+        storedSettings.fontFamily != null ? String(storedSettings.fontFamily).trim() : 'default';
+      const rawLayout = storedSettings.layout && typeof storedSettings.layout === 'object' ? storedSettings.layout : {};
       layout = {
         subjectOrder: Array.isArray(rawLayout.subjectOrder)
           ? rawLayout.subjectOrder
@@ -4972,6 +5011,10 @@ app.get(
           rawLayout.photoOffsetYIn != null && Number.isFinite(Number(rawLayout.photoOffsetYIn))
             ? Math.max(-1.5, Math.min(1.5, Number(rawLayout.photoOffsetYIn)))
             : 0,
+        titleScale:
+          rawLayout.titleScale != null && Number.isFinite(Number(rawLayout.titleScale))
+            ? Math.max(0.75, Math.min(1.45, Number(rawLayout.titleScale)))
+            : 1,
         headingScale:
           rawLayout.headingScale != null && Number.isFinite(Number(rawLayout.headingScale))
             ? Math.max(0.75, Math.min(1.45, Number(rawLayout.headingScale)))
@@ -4990,6 +5033,7 @@ app.get(
         `SELECT value->>'templatePath' AS template_path
            FROM app_settings
           WHERE key LIKE $1
+            AND key NOT LIKE '%\\_student\\_%' ESCAPE '\\'
             AND COALESCE(value->>'templatePath', '') <> ''
           ORDER BY updated_at DESC
           LIMIT 1`,
@@ -5002,7 +5046,7 @@ app.get(
     if (!['default', 'calibri', 'georgia', 'verdana', 'trebuchet', 'times'].includes(fontFamily)) {
       fontFamily = 'default';
     }
-    res.json({ classLevel, stream, nextTermBegins, fontScale, templatePath, fontFamily, layout });
+    res.json({ classLevel, stream, studentId: sid || null, nextTermBegins, fontScale, templatePath, fontFamily, layout });
   })
 );
 
@@ -5015,6 +5059,10 @@ app.put(
       req.body && req.body.stream != null && String(req.body.stream).trim()
         ? String(req.body.stream).trim()
         : '';
+    const sid =
+      req.body && req.body.studentId != null && String(req.body.studentId).trim()
+        ? Number(req.body.studentId)
+        : null;
     const nextTermBegins =
       req.body && req.body.nextTermBegins != null
         ? String(req.body.nextTermBegins).slice(0, 120)
@@ -5083,6 +5131,10 @@ app.put(
         rawLayout.photoOffsetYIn != null && Number.isFinite(Number(rawLayout.photoOffsetYIn))
           ? Math.max(-1.5, Math.min(1.5, Number(rawLayout.photoOffsetYIn)))
           : 0,
+      titleScale:
+        rawLayout.titleScale != null && Number.isFinite(Number(rawLayout.titleScale))
+          ? Math.max(0.75, Math.min(1.45, Number(rawLayout.titleScale)))
+          : 1,
       headingScale:
         rawLayout.headingScale != null && Number.isFinite(Number(rawLayout.headingScale))
           ? Math.max(0.75, Math.min(1.45, Number(rawLayout.headingScale)))
@@ -5094,14 +5146,15 @@ app.put(
     };
     const templatePath =
       req.body && req.body.templatePath != null ? String(req.body.templatePath).slice(0, 500) : '';
-    const key = `report_next_term_${classLevel}_${stream || '_'}`;
+    const baseKey = `report_next_term_${classLevel}_${stream || '_'}`;
+    const key = sid && Number.isFinite(sid) ? `${baseKey}_student_${sid}` : baseKey;
     const savedSettings = { nextTermBegins, fontScale, templatePath, fontFamily, layout };
     await pool.query(
       `INSERT INTO app_settings (key, value) VALUES ($1, $2::jsonb)
        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
       [key, JSON.stringify(savedSettings)]
     );
-    res.json({ ok: true, classLevel, stream, ...savedSettings });
+    res.json({ ok: true, classLevel, stream, studentId: sid || null, ...savedSettings });
   })
 );
 
@@ -5138,6 +5191,7 @@ app.post(
         photoScale: 1,
         photoOffsetXIn: 0,
         photoOffsetYIn: 0,
+        titleScale: 1,
         headingScale: 1,
         commentFontScale: 1,
       },
