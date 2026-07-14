@@ -7,6 +7,8 @@
     "start": "node server.js",
     "dev": "node server.js",
     "db:init": "node scripts/init-db.js",
+    "repair:comments": "node scripts/repair-cross-subject-comments.js",
+    "repair:comments:apply": "node scripts/repair-cross-subject-comments.js --apply",
     "deploy": "powershell -NoProfile -ExecutionPolicy Bypass -File deploy/upload-full-update.ps1",
     "deploy:recent": "powershell -NoProfile -ExecutionPolicy Bypass -File deploy/deploy-recent-changes.ps1",
     "deploy:github": "powershell -NoProfile -ExecutionPolicy Bypass -File deploy/push-and-deploy.ps1"

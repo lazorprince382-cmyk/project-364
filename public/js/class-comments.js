@@ -38,6 +38,8 @@
   let markRows = [];
   let classTeacherRows = [];
   let gradingBands = [];
+  let subjectRowsLoading = false;
+  let subjectRowsLoadToken = 0;
   let schoolReportingYear = new Date().getFullYear();
   let commentsPollTimer = null;
   const serverSnap = { subjectBody: '', classTeacherBody: '', marksScored: '' };
@@ -632,15 +634,25 @@
   }
 
   async function loadComments() {
+    const token = ++subjectRowsLoadToken;
+    const requestedSubject = elSubject.value;
+    subjectRowsLoading = true;
     const u = new URL('/api/comments', window.location.origin);
     u.searchParams.set('classLevel', ctx.classLevel);
     if (ctx.stream) u.searchParams.set('stream', ctx.stream);
-    u.searchParams.set('subject', elSubject.value);
+    u.searchParams.set('subject', requestedSubject);
     u.searchParams.set('term', elTerm.value);
     u.searchParams.set('period', elPeriod.value);
     u.searchParams.set('year', String(selectedAcademicYear()));
-    const res = await fetch(u);
-    commentRows = res.ok ? await res.json() : [];
+    try {
+      const res = await fetch(u);
+      if (token !== subjectRowsLoadToken || requestedSubject !== elSubject.value) return;
+      commentRows = res.ok ? await res.json() : [];
+    } finally {
+      if (token === subjectRowsLoadToken && requestedSubject === elSubject.value) {
+        subjectRowsLoading = false;
+      }
+    }
   }
 
   async function loadMarks() {
@@ -668,6 +680,7 @@
 
   async function refreshSubjectRows() {
     if (isMarksSubject()) {
+      subjectRowsLoading = false;
       await loadMarks();
       fillMarkForCurrent();
     } else {
@@ -894,7 +907,15 @@
   async function persistSubjectComment(silent) {
     const s = students[idx];
     if (!s) return 'skipped';
+    if (subjectRowsLoading) {
+      if (ctx.flash) ctx.flash('Comments are still loading for this subject. Try again in a moment.', false);
+      return 'error';
+    }
     const targetStudentId = s.id;
+    const targetSubject = elSubject.value;
+    const targetTerm = Number(elTerm.value);
+    const targetPeriod = elPeriod.value;
+    const targetYear = selectedAcademicYear();
     let body = elBody.value.trim();
     if (!body) {
       if (silent) return 'skipped';
@@ -909,10 +930,10 @@
       headers: authHeaders(),
       body: JSON.stringify({
         student_id: targetStudentId,
-        subject: elSubject.value,
-        term: Number(elTerm.value),
-        period: elPeriod.value,
-        year: selectedAcademicYear(),
+        subject: targetSubject,
+        term: targetTerm,
+        period: targetPeriod,
+        year: targetYear,
         body: body,
         author_role: 'class_teacher',
       }),
@@ -1127,6 +1148,11 @@
 
   if (elSubject && elTerm && elPeriod) {
     elSubject.addEventListener('change', function () {
+      subjectRowsLoadToken += 1;
+      subjectRowsLoading = true;
+      commentRows = [];
+      if (elBody) elBody.value = '';
+      if (elChar) elChar.textContent = '0 / 300';
       updatePeriodLabel();
       updateReadonlyUi();
       renderCarousel();

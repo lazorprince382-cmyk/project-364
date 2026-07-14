@@ -58,6 +58,8 @@
   let commentRows = [];
   let pick = null;
   let quickBankFetchToken = 0;
+  let commentsLoading = false;
+  let commentsLoadToken = 0;
 
   CLASS_ROWS.forEach(function (r) {
     const o = document.createElement('option');
@@ -209,22 +211,51 @@
   }
 
   async function loadComments() {
+    const token = ++commentsLoadToken;
     pick = parsePick();
     if (!pick) {
       commentRows = [];
+      commentsLoading = false;
       fillCommentForCurrent();
       return;
     }
+    commentsLoading = true;
+    const requestedPick = { classLevel: pick.classLevel, stream: pick.stream || '' };
+    const requestedTerm = elTerm.value;
+    const requestedPeriod = elPeriod.value;
     const u = new URL('/api/comments', window.location.origin);
-    u.searchParams.set('classLevel', pick.classLevel);
-    if (pick.stream) u.searchParams.set('stream', pick.stream);
+    u.searchParams.set('classLevel', requestedPick.classLevel);
+    if (requestedPick.stream) u.searchParams.set('stream', requestedPick.stream);
     u.searchParams.set('subject', subjectName);
-    u.searchParams.set('term', elTerm.value);
-    u.searchParams.set('period', elPeriod.value);
-    const res = await fetch(u);
-    commentRows = res.ok ? await res.json() : [];
-    fillCommentForCurrent();
-    updateSummary();
+    u.searchParams.set('term', requestedTerm);
+    u.searchParams.set('period', requestedPeriod);
+    try {
+      const res = await fetch(u);
+      const latestPick = parsePick();
+      const stillCurrent =
+        token === commentsLoadToken &&
+        latestPick &&
+        latestPick.classLevel === requestedPick.classLevel &&
+        (latestPick.stream || '') === requestedPick.stream &&
+        elTerm.value === requestedTerm &&
+        elPeriod.value === requestedPeriod;
+      if (!stillCurrent) return;
+      commentRows = res.ok ? await res.json() : [];
+      fillCommentForCurrent();
+      updateSummary();
+    } finally {
+      const latestPick = parsePick();
+      if (
+        token === commentsLoadToken &&
+        latestPick &&
+        latestPick.classLevel === requestedPick.classLevel &&
+        (latestPick.stream || '') === requestedPick.stream &&
+        elTerm.value === requestedTerm &&
+        elPeriod.value === requestedPeriod
+      ) {
+        commentsLoading = false;
+      }
+    }
   }
 
   function commentForStudent(sid) {
@@ -346,11 +377,18 @@
       alert('Choose a class first.');
       return;
     }
+    if (commentsLoading) {
+      alert('Comments are still loading for this class and reporting slot. Try again in a moment.');
+      return false;
+    }
     const targetStudentId = s.id;
+    const targetPick = { classLevel: pick.classLevel, stream: pick.stream || '' };
+    const targetTerm = Number(elTerm.value);
+    const targetPeriod = elPeriod.value;
     let body = elBody.value.trim();
     if (!body) {
       alert('Write a comment before saving.');
-      return;
+      return false;
     }
     const res = await fetch('/api/comments', {
       method: 'POST',
@@ -358,8 +396,10 @@
       body: JSON.stringify({
         student_id: targetStudentId,
         subject: subjectName,
-        term: Number(elTerm.value),
-        period: elPeriod.value,
+        classLevel: targetPick.classLevel,
+        stream: targetPick.stream,
+        term: targetTerm,
+        period: targetPeriod,
         body: body,
         author_role: 'skill_teacher',
       }),
@@ -369,7 +409,7 @@
     });
     if (!res.ok) {
       alert(data.error || 'Could not save');
-      return;
+      return false;
     }
     const flash = document.getElementById('flash');
     if (flash) {
@@ -379,6 +419,7 @@
       }, 3000);
     }
     await loadComments();
+    return true;
   }
 
   function moveIdx(delta) {
@@ -391,17 +432,32 @@
   }
 
   elClass.addEventListener('change', function () {
+    commentsLoadToken += 1;
+    commentsLoading = true;
+    commentRows = [];
+    elBody.value = '';
+    elChar.textContent = '0 / 300';
     loadStudents().then(function () {
       refreshQuickCommentBank();
     });
   });
   elTerm.addEventListener('change', function () {
+    commentsLoadToken += 1;
+    commentsLoading = true;
+    commentRows = [];
+    elBody.value = '';
+    elChar.textContent = '0 / 300';
     updatePeriodLabel();
     loadComments().then(function () {
       refreshQuickCommentBank();
     });
   });
   elPeriod.addEventListener('change', function () {
+    commentsLoadToken += 1;
+    commentsLoading = true;
+    commentRows = [];
+    elBody.value = '';
+    elChar.textContent = '0 / 300';
     updatePeriodLabel();
     loadComments();
   });
@@ -421,12 +477,10 @@
   });
   document.getElementById('sc-save-only').addEventListener('click', saveComment);
   document.getElementById('sc-save-next').addEventListener('click', async function () {
-    await saveComment();
-    moveIdx(1);
+    if (await saveComment()) moveIdx(1);
   });
   document.getElementById('sc-save-prev').addEventListener('click', async function () {
-    await saveComment();
-    moveIdx(-1);
+    if (await saveComment()) moveIdx(-1);
   });
 
   window.__oceanSkillCommentsInit = async function () {

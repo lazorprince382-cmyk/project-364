@@ -22,6 +22,24 @@ const { computeSubjectProgress } = require('./lib/directorAnalytics');
 
 /** Skill subjects (Skills dashboard; class note uploads exclude these). */
 const SKILL_SUBJECTS = ['Computer', 'Salon', 'Bakery', 'Fashion and Design', 'Music'];
+const KNOWN_SUBJECTS = Array.from(
+  new Set(
+    ['daycare', 'baby', 'middle', 'top', 'primary1', 'primary2']
+      .flatMap((level) => subjectsForClassLevel(level))
+      .concat(SKILL_SUBJECTS)
+  )
+);
+
+function normalizeSubjectKey(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function canonicalSubjectName(value) {
+  const trimmed = String(value || '').trim().replace(/\s+/g, ' ');
+  if (!trimmed) return '';
+  const key = normalizeSubjectKey(trimmed);
+  return KNOWN_SUBJECTS.find((subject) => normalizeSubjectKey(subject) === key) || trimmed;
+}
 
 const PRIMARY_LEVELS = ['primary1', 'primary2'];
 const REPORT_PERIODS = ['begin', 'mid', 'end'];
@@ -3068,6 +3086,7 @@ app.get(
   '/api/comments',
   asyncRoute(async (req, res) => {
     const { classLevel, stream, subject, term, period } = req.query;
+    const subjectFilter = canonicalSubjectName(subject);
     const academicYear = await resolveAcademicYear(req.query.year);
     if (!classLevel) return res.status(400).json({ error: 'classLevel required' });
     const cl = String(classLevel).trim();
@@ -3081,9 +3100,9 @@ app.get(
       WHERE c.student_id = ANY($1::int[]) AND c.academic_year = $2`;
     const params = [ids, academicYear];
     let n = 3;
-    if (subject) {
-      q += ` AND c.subject = $${n++}`;
-      params.push(subject);
+    if (subjectFilter) {
+      q += ` AND LOWER(TRIM(c.subject)) = LOWER(TRIM($${n++}::text))`;
+      params.push(subjectFilter);
     }
     if (term) {
       q += ` AND c.term = $${n++}`;
@@ -3100,6 +3119,7 @@ app.get(
         const s = byId.get(String(r.student_id));
         if (!s) return null;
         return Object.assign({}, r, {
+          subject: canonicalSubjectName(r.subject),
           full_name: s.full_name,
           reg_no: s.reg_no,
           class_level: s.class_level,
@@ -3118,6 +3138,7 @@ app.get(
   '/api/comments/school-review',
   asyncRoute(async (req, res) => {
     const { term, period, classLevel, stream, subject } = req.query;
+    const subjectFilter = canonicalSubjectName(subject);
     const academicYear = await resolveAcademicYear(req.query.year);
     if (!term || !period) return res.status(400).json({ error: 'term and period (begin|mid|end) required' });
     const termNum = Number(term);
@@ -3139,13 +3160,13 @@ app.get(
       q += ` AND LOWER(TRIM(COALESCE(s.stream, ''))) = LOWER(TRIM($${n++}))`;
       params.push(String(stream).trim());
     }
-    if (subject && String(subject).trim()) {
-      q += ` AND TRIM(c.subject) = TRIM($${n++}::text)`;
-      params.push(String(subject).trim());
+    if (subjectFilter) {
+      q += ` AND LOWER(TRIM(c.subject)) = LOWER(TRIM($${n++}::text))`;
+      params.push(subjectFilter);
     }
     q += ' ORDER BY s.class_level ASC, s.stream ASC NULLS FIRST, s.full_name ASC, c.subject ASC';
     const { rows } = await pool.query(q, params);
-    res.json(rows);
+    res.json(rows.map((r) => Object.assign({}, r, { subject: canonicalSubjectName(r.subject) })));
   })
 );
 
@@ -3170,21 +3191,21 @@ app.patch(
     if (await isReportLocked(st.rows[0].class_level, st.rows[0].stream || '', termNum, period)) {
       return res.status(423).json({ error: 'This term report is locked. Unlock it from Reports before editing.' });
     }
-    const subj = String(subject).trim();
+    const subj = canonicalSubjectName(subject);
     const bodyStr = String(body).trim();
     if (!bodyStr.length) return res.status(400).json({ error: 'Comment cannot be empty' });
     if (bodyStr.length > 300) return res.status(400).json({ error: 'Comment max 300 characters' });
     const prev = (
       await pool.query(
         `SELECT body FROM student_subject_comments
-         WHERE student_id = $1 AND TRIM(subject) = TRIM($2::text) AND term = $3 AND period = $4 AND academic_year = $5`,
+         WHERE student_id = $1 AND LOWER(TRIM(subject)) = LOWER(TRIM($2::text)) AND term = $3 AND period = $4 AND academic_year = $5`,
         [sid, subj, termNum, period, academicYear]
       )
     ).rows[0] || null;
     const r = await pool.query(
       `UPDATE student_subject_comments
-       SET body = $1, updated_at = NOW()
-       WHERE student_id = $2 AND TRIM(subject) = TRIM($3::text) AND term = $4 AND period = $5 AND academic_year = $6
+       SET body = $1, subject = $3, updated_at = NOW()
+       WHERE student_id = $2 AND LOWER(TRIM(subject)) = LOWER(TRIM($3::text)) AND term = $4 AND period = $5 AND academic_year = $6
        RETURNING id, student_id, subject, term, period, academic_year, body, author_role, updated_at`,
       [bodyStr, sid, subj, termNum, period, academicYear]
     );
@@ -3331,7 +3352,7 @@ app.post(
     if (await isReportLocked(cl, streamVal, termNum, period)) {
       return res.status(423).json({ error: 'This term report is locked. Unlock it from Reports before editing.' });
     }
-    const subj = String(subject).trim();
+    const subj = canonicalSubjectName(subject);
     if (!isPrimaryLevel(cl)) {
       return res.status(400).json({ error: 'Marks are only for Primary classes' });
     }
@@ -3479,7 +3500,7 @@ app.post(
     if (await isReportLocked(cl, streamVal, termNum, period)) {
       return res.status(423).json({ error: 'This term report is locked. Unlock it from Reports before editing.' });
     }
-    const subj = String(subject).trim();
+    const subj = canonicalSubjectName(subject);
     const bodyStr = String(body).trim();
     if (!bodyStr.length) return res.status(400).json({ error: 'Comment cannot be empty' });
     if (bodyStr.length > 300) return res.status(400).json({ error: 'Comment max 300 characters' });
@@ -3495,19 +3516,34 @@ app.post(
 
     const prev = (
       await pool.query(
-        `SELECT body, author_role FROM student_subject_comments
-         WHERE student_id = $1 AND subject = $2 AND term = $3 AND period = $4 AND academic_year = $5`,
+        `SELECT subject, body, author_role FROM student_subject_comments
+         WHERE student_id = $1 AND LOWER(TRIM(subject)) = LOWER(TRIM($2::text)) AND term = $3 AND period = $4 AND academic_year = $5`,
         [sid, subj, termNum, period, academicYear]
       )
     ).rows[0] || null;
-    const { rows } = await pool.query(
-      `INSERT INTO student_subject_comments (student_id, subject, term, period, academic_year, body, author_role)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       ON CONFLICT (student_id, subject, term, period, academic_year)
-       DO UPDATE SET body = EXCLUDED.body, author_role = EXCLUDED.author_role, updated_at = NOW()
-       RETURNING *`,
-      [sid, subj, termNum, period, academicYear, bodyStr, role]
-    );
+    let rows;
+    if (prev) {
+      rows = (
+        await pool.query(
+          `UPDATE student_subject_comments
+           SET subject = $2, body = $6, author_role = $7, updated_at = NOW()
+           WHERE student_id = $1 AND LOWER(TRIM(subject)) = LOWER(TRIM($2::text)) AND term = $3 AND period = $4 AND academic_year = $5
+           RETURNING *`,
+          [sid, subj, termNum, period, academicYear, bodyStr, role]
+        )
+      ).rows;
+    } else {
+      rows = (
+        await pool.query(
+          `INSERT INTO student_subject_comments (student_id, subject, term, period, academic_year, body, author_role)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           ON CONFLICT (student_id, subject, term, period, academic_year)
+           DO UPDATE SET body = EXCLUDED.body, author_role = EXCLUDED.author_role, updated_at = NOW()
+           RETURNING *`,
+          [sid, subj, termNum, period, academicYear, bodyStr, role]
+        )
+      ).rows;
+    }
     await appendReportAudit({
       classLevel: cl,
       stream: streamVal,
@@ -3521,7 +3557,7 @@ app.post(
       newValue: { body: rows[0].body, author_role: rows[0].author_role },
       actor: resolveReportActor(req, role),
     });
-    res.status(201).json(rows[0]);
+    res.status(prev ? 200 : 201).json(Object.assign({}, rows[0], { subject: canonicalSubjectName(rows[0].subject) }));
   })
 );
 
