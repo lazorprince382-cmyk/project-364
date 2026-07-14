@@ -173,20 +173,25 @@
           return String((r && r.band) || '').trim();
         })
       : [];
-    if (!weeklyRows.length) {
+    const isComputerSubject = String(subjectName || '').trim().toLowerCase() === 'computer';
+    if (!weeklyRows.length && !isComputerSubject) {
       applyQuickCommentBank([]);
       return;
     }
     const name = s ? QC.learnerEnglishFirstName(s.full_name) : 'Learner';
     const summary = QC.summarizeWeeklyBands(weeklyRows);
-    const items = QC.buildSubjectComments({
+    const seedBase = {
       studentId: s ? s.id : 0,
       name: name,
       subject: subjectName,
       classLevel: pick ? pick.classLevel : 'baby',
       summary: summary,
       weeklyRows: weeklyRows,
-    });
+    };
+    const items =
+      isComputerSubject && QC.buildComputerSkillComments
+        ? QC.buildComputerSkillComments(seedBase)
+        : QC.buildSubjectComments(seedBase);
     applyQuickCommentBank(items);
   }
 

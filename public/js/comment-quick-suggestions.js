@@ -1221,6 +1221,124 @@
     return buildLines(name, classLevel, subject, summary, seed);
   }
 
+  function computerClassGroup(classLevel) {
+    const cl = normalizeClassLevel(classLevel);
+    if (cl === 'top') return 'top';
+    if (isPrimaryLevel(cl)) return 'primary';
+    return 'baby';
+  }
+
+  const COMPUTER_COMMENT_POOLS = {
+    baby: {
+      strong: [
+        'shows excellent interest in computer lessons and identifies computer parts with confidence.',
+        'pays close attention during lessons and remembers most computer parts taught.',
+        'demonstrates strong passion for learning and identifies computer parts accurately.',
+        'shows good interest in computer lessons and identifies most computer parts correctly.',
+        'pays good attention during lessons and continues to improve in recognizing computer parts.',
+        'participates actively in class and demonstrates a good understanding of the computer parts taught.',
+      ],
+      average: [
+        'shows interest in computer lessons and continues to improve in recognizing computer parts.',
+        'is learning the names of computer parts and participates during class activities.',
+        'pays attention during most lessons and is progressing steadily.',
+        'shows good interest in computer lessons and identifies most computer parts correctly.',
+        'pays good attention during lessons and continues to improve in recognizing computer parts.',
+        'participates actively in class and demonstrates a good understanding of the computer parts taught.',
+      ],
+      weak: [
+        "tries to identify computer parts and is making gradual progress with the teacher's guidance.",
+        "is learning to pay closer attention during computer lessons and shows growing interest with the teacher's guidance.",
+        "tries to remember the names of computer parts and is developing confidence with the teacher's guidance.",
+        'is learning the names of computer parts and participates during class activities.',
+        'pays attention during most lessons and is progressing steadily.',
+      ],
+      unset: [
+        'shows interest in computer lessons and continues to improve in recognizing computer parts.',
+        'is learning the names of computer parts and participates during class activities.',
+        "tries to identify computer parts and is making gradual progress with the teacher's guidance.",
+        'pays attention during most lessons and is progressing steadily.',
+      ],
+    },
+    top: {
+      strong: [
+        'types confidently using both hands and produces accurate sentences with excellent speed.',
+        'demonstrates excellent keyboard skills and types neatly with accuracy and confidence.',
+        'pays close attention during typing lessons and shows outstanding progress in speed and sentence formation.',
+        'types using both hands and continues to improve in speed and accuracy.',
+        'demonstrates good keyboard skills and forms simple sentences with confidence.',
+        'pays good attention during practical lessons and shows steady improvement in typing accuracy.',
+      ],
+      average: [
+        'is learning to type using both hands and continues to improve in accuracy.',
+        'shows interest during typing lessons and is developing confidence in sentence typing.',
+        'pays attention during practical activities and is making steady progress in keyboard skills.',
+        'types using both hands and continues to improve in speed and accuracy.',
+        'demonstrates good keyboard skills and forms simple sentences with confidence.',
+        'pays good attention during practical lessons and shows steady improvement in typing accuracy.',
+      ],
+      weak: [
+        "tries to type using both hands and is developing typing accuracy with the teacher's guidance.",
+        "is learning to form simple sentences through typing and is making gradual progress with the teacher's guidance.",
+        "tries to remain focused during practical lessons and continues to improve keyboard skills with the teacher's guidance.",
+        'is learning to type using both hands and continues to improve in accuracy.',
+        'shows interest during typing lessons and is developing confidence in sentence typing.',
+      ],
+      unset: [
+        'is learning to type using both hands and continues to improve in accuracy.',
+        'shows interest during typing lessons and is developing confidence in sentence typing.',
+        'pays attention during practical activities and is making steady progress in keyboard skills.',
+        "tries to type using both hands and is developing typing accuracy with the teacher's guidance.",
+      ],
+    },
+    primary: {
+      strong: [
+        'organizes work neatly in folders and types accurately in Microsoft Word.',
+        'demonstrates excellent skills in organizing files and produces accurate work in Word documents.',
+        'shows confidence in managing folders and types neatly with excellent accuracy.',
+        'organizes work in folders well and continues to improve typing accuracy in Microsoft Word.',
+        'demonstrates good file management skills and types neatly with few errors.',
+        'pays good attention during practical lessons and shows steady progress in organizing files and typing.',
+      ],
+      average: [
+        'is learning to organize work in folders and continues to improve typing accuracy.',
+        'shows interest during practical lessons and is developing confidence in using Microsoft Word.',
+        'pays attention during class activities and is making steady progress in file organization and typing.',
+        'organizes work in folders well and continues to improve typing accuracy in Microsoft Word.',
+        'demonstrates good file management skills and types neatly with few errors.',
+        'pays good attention during practical lessons and shows steady progress in organizing files and typing.',
+      ],
+      weak: [
+        "tries to organize work in folders and is making gradual progress with the teacher's guidance.",
+        "is learning to type accurately in Microsoft Word and continues to improve with the teacher's guidance.",
+        "tries to complete practical activities and is developing confidence in file organization and typing with the teacher's guidance.",
+        'is learning to organize work in folders and continues to improve typing accuracy.',
+        'shows interest during practical lessons and is developing confidence in using Microsoft Word.',
+      ],
+      unset: [
+        'is learning to organize work in folders and continues to improve typing accuracy.',
+        'shows interest during practical lessons and is developing confidence in using Microsoft Word.',
+        'pays attention during class activities and is making steady progress in file organization and typing.',
+        "tries to organize work in folders and is making gradual progress with the teacher's guidance.",
+      ],
+    },
+  };
+
+  function buildComputerSkillComments(opts) {
+    const name = opts.name || 'The learner';
+    const classGroup = computerClassGroup(opts.classLevel || 'baby');
+    const pools = COMPUTER_COMMENT_POOLS[classGroup] || COMPUTER_COMMENT_POOLS.baby;
+    const bodies = dedupeStrings(
+      []
+        .concat(pools.weak || [])
+        .concat(pools.average || [])
+        .concat(pools.strong || [])
+    );
+    return bodies.map(function (body) {
+      return { snippet: line(name, body) };
+    });
+  }
+
   function buildClassTeacherComments(opts) {
     return buildClassTeacherBehaviorComments(opts);
   }
@@ -1692,6 +1810,7 @@
     hasDynamicWeeklyRatings: hasDynamicWeeklyRatings,
     buildSubjectCommentsFromRatings: buildSubjectCommentsFromRatings,
     buildSubjectComments: buildSubjectComments,
+    buildComputerSkillComments: buildComputerSkillComments,
     buildClassTeacherComments: buildClassTeacherComments,
     summarizeSkillLessonProgress: summarizeSkillLessonProgress,
     buildSkillComments: buildSkillComments,
