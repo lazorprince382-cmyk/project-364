@@ -2678,11 +2678,16 @@
     cards.forEach(function (card) {
       card.style.setProperty('--rp-font-scale', String(clamped));
       card.style.setProperty('--rp-scale', String(finalScale));
-      card.style.transformOrigin = 'top center';
-      card.style.transform = 'scale(' + finalScale + ')';
       const parent = card.closest('.report-stack-item');
+      card.style.transformOrigin = parent ? 'top left' : 'top center';
+      card.style.transform = 'scale(' + finalScale + ')';
       if (parent) {
+        const naturalWidth = card.scrollWidth || card.getBoundingClientRect().width || 0;
         const naturalHeight = card.scrollHeight || 0;
+        if (naturalWidth > 0) {
+          parent.style.width = Math.ceil(naturalWidth * finalScale) + 'px';
+          parent.style.maxWidth = '100%';
+        }
         const scaledHeightPx = naturalHeight > 0 ? naturalHeight * finalScale : 0;
         if (scaledHeightPx > 0) {
           parent.style.minHeight = Math.ceil(scaledHeightPx + 8) + 'px';
@@ -2723,10 +2728,15 @@
         const next = refit;
         cardsNow.forEach(function (card) {
           card.style.setProperty('--rp-font-scale', String(clamped));
-          card.style.transformOrigin = 'top center';
-          card.style.transform = 'scale(' + next + ')';
           const parent = card.closest('.report-stack-item');
+          card.style.transformOrigin = parent ? 'top left' : 'top center';
+          card.style.transform = 'scale(' + next + ')';
           if (parent) {
+            const naturalWidth = card.scrollWidth || card.getBoundingClientRect().width || 0;
+            if (naturalWidth > 0) {
+              parent.style.width = Math.ceil(naturalWidth * next) + 'px';
+              parent.style.maxWidth = '100%';
+            }
             const h = card.scrollHeight || 0;
             if (h > 0) parent.style.minHeight = Math.ceil(h * next + 8) + 'px';
           }

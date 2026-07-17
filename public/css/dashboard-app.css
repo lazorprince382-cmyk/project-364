@@ -3406,6 +3406,24 @@ body.app-director .dash-notify-btn:disabled {
   }
 }
 
+@media (max-width: 900px) {
+  body.app-dash #panel-reports .report-sheet {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.app-dash #panel-reports .report-stack {
+    align-items: center;
+    width: 100%;
+  }
+
+  body.app-dash #panel-reports .report-stack .report-stack-item {
+    flex: 0 0 auto;
+    overflow: hidden;
+  }
+}
+
 /* Private staff messages (WhatsApp-style) */
 .sr-only {
   position: absolute;
