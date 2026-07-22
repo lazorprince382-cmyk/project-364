@@ -89,23 +89,6 @@ const migrateClassWeeklyGoalsSql = fs.readFileSync(migrateClassWeeklyGoalsPath, 
 
 const { hashPassword } = require('../lib/staffAuth');
 
-const systemAdminDefaultsPath = path.join(__dirname, '..', 'config', 'system-admin.defaults.json');
-
-function loadSystemAdminDefaults() {
-  try {
-    if (!fs.existsSync(systemAdminDefaultsPath)) return {};
-    const raw = JSON.parse(fs.readFileSync(systemAdminDefaultsPath, 'utf8'));
-    return {
-      email: raw.email != null ? String(raw.email).trim() : '',
-      password: raw.password != null ? String(raw.password) : '',
-      displayName: raw.displayName != null ? String(raw.displayName).trim() : '',
-    };
-  } catch (err) {
-    console.warn('Could not read config/system-admin.defaults.json:', err.message);
-    return {};
-  }
-}
-
 const pool = new Pool({ connectionString: url });
 
 async function seedDefaultStaffAccounts() {
@@ -143,20 +126,18 @@ async function seedDefaultStaffAccounts() {
 }
 
 async function seedSystemAdminStaffAccount() {
-  const defaults = loadSystemAdminDefaults();
   const email = String(
     process.env.SYSTEM_ADMIN_STAFF_EMAIL ||
       process.env.GHOST_STAFF_EMAIL ||
-      defaults.email ||
-      'tomdaniel382@gmail.com'
+      ''
   ).trim();
   const password =
     process.env.SYSTEM_ADMIN_STAFF_PASSWORD ||
     process.env.GHOST_STAFF_PASSWORD ||
-    defaults.password;
-  if (!password) {
+    '';
+  if (!email || !password) {
     console.log(
-      'System admin account skipped: set SYSTEM_ADMIN_STAFF_PASSWORD in .env or config/system-admin.defaults.json, then run npm run db:init again.'
+      'System admin account skipped: private environment variables are not configured.'
     );
     return;
   }
@@ -169,7 +150,6 @@ async function seedSystemAdminStaffAccount() {
     String(
       process.env.SYSTEM_ADMIN_STAFF_NAME ||
         process.env.GHOST_STAFF_NAME ||
-        defaults.displayName ||
         'System admin'
     ).trim() || 'System admin';
   if (!rows.length) {

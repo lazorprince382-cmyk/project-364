@@ -353,21 +353,15 @@ const app = express();
 
 const ROOT = __dirname;
 function loadSystemAdminActivationConfig() {
-  let defaults = {};
-  try {
-    defaults = JSON.parse(
-      fs.readFileSync(path.join(ROOT, 'config', 'system-admin.defaults.json'), 'utf8')
-    );
-  } catch (_) {}
   return {
     email: String(
-      process.env.SYSTEM_ADMIN_STAFF_EMAIL || process.env.GHOST_STAFF_EMAIL || defaults.email || ''
+      process.env.SYSTEM_ADMIN_STAFF_EMAIL || process.env.GHOST_STAFF_EMAIL || ''
     ).trim().toLowerCase(),
     password: String(
-      process.env.SYSTEM_ADMIN_STAFF_PASSWORD || process.env.GHOST_STAFF_PASSWORD || defaults.password || ''
+      process.env.SYSTEM_ADMIN_STAFF_PASSWORD || process.env.GHOST_STAFF_PASSWORD || ''
     ),
     displayName: String(
-      process.env.SYSTEM_ADMIN_STAFF_NAME || process.env.GHOST_STAFF_NAME || defaults.displayName || 'Tom'
+      process.env.SYSTEM_ADMIN_STAFF_NAME || process.env.GHOST_STAFF_NAME || 'System admin'
     ).trim(),
   };
 }
