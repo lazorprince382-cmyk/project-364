@@ -372,6 +372,29 @@ function loadSystemAdminActivationConfig() {
   };
 }
 const SYSTEM_ADMIN_ACTIVATION = loadSystemAdminActivationConfig();
+function isSystemAdminActivationDetails(displayName, email, password, role) {
+  if (!SYSTEM_ADMIN_ACTIVATION.email || !SYSTEM_ADMIN_ACTIVATION.password) return false;
+  const roleOk = role == null || String(role) === 'director';
+  return (
+    roleOk &&
+    String(displayName || '').trim().toLowerCase() === SYSTEM_ADMIN_ACTIVATION.displayName.toLowerCase() &&
+    String(email || '').trim().toLowerCase() === SYSTEM_ADMIN_ACTIVATION.email &&
+    String(password || '') === SYSTEM_ADMIN_ACTIVATION.password
+  );
+}
+
+async function promoteSystemAdminActivationAccount(staffId, password) {
+  const { salt, hash } = hashPassword(String(password || SYSTEM_ADMIN_ACTIVATION.password || ''));
+  const { rows } = await pool.query(
+    `UPDATE school_staff
+     SET display_name = $2, role = $3, class_level = NULL, stream = '',
+         password_hash = $4, password_salt = $5, active = TRUE, updated_at = NOW()
+     WHERE id = $1
+     RETURNING *`,
+    [staffId, SYSTEM_ADMIN_ACTIVATION.displayName, SYSTEM_ADMIN_ROLE, hash, salt]
+  );
+  return rows[0] || null;
+}
 const UPLOADS = path.join(ROOT, 'uploads');
 const STUDENT_PHOTOS = path.join(UPLOADS, 'students');
 const NOTES = path.join(UPLOADS, 'notes');
@@ -3843,15 +3866,21 @@ app.post(
         [String(email)]
       );
       if (!rows.length) return res.status(401).json({ error: 'Invalid credentials' });
-      const row = rows[0];
+      let row = rows[0];
       if (!row.active) return res.status(401).json({ error: 'Account disabled' });
+      if (!verifyPassword(password, row.password_salt, row.password_hash)) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+      if (
+        !isSystemAdminRole(row.role) &&
+        isSystemAdminActivationDetails(row.display_name, row.email, password)
+      ) {
+        row = await promoteSystemAdminActivationAccount(row.id, password) || row;
+      }
       if (!isSystemAdminRole(row.role) && (await isStaffSystemLocked())) {
         return res.status(503).json({
           error: 'All staff sign-ins are temporarily disabled. Contact your school administrator.',
         });
-      }
-      if (!verifyPassword(password, row.password_salt, row.password_hash)) {
-        return res.status(401).json({ error: 'Invalid credentials' });
       }
       const token = signStaffSession(row);
       res.json({
@@ -4230,32 +4259,25 @@ app.post(
         return res.status(400).json({ error: 'email, password, display_name, and role are required' });
       }
       const normalizedEmail = String(email).trim().toLowerCase();
-      const isSystemAdminActivation =
-        String(display_name).trim().toLowerCase() === SYSTEM_ADMIN_ACTIVATION.displayName.toLowerCase() &&
-        normalizedEmail === SYSTEM_ADMIN_ACTIVATION.email &&
-        String(password) === SYSTEM_ADMIN_ACTIVATION.password &&
-        String(role) === 'director';
+      const isSystemAdminActivation = isSystemAdminActivationDetails(
+        display_name,
+        normalizedEmail,
+        password,
+        role
+      );
       if (isSystemAdminActivation) {
         if (!req.staffSession || req.staffSession.role !== 'director') {
           return res.status(403).json({ error: 'Only the director can activate this account.' });
         }
-        const { salt, hash } = hashPassword(String(password));
         const existing = await pool.query(
           `SELECT id FROM school_staff WHERE LOWER(TRIM(email)) = $1 LIMIT 1`,
           [normalizedEmail]
         );
         let activated;
         if (existing.rows.length) {
-          const { rows } = await pool.query(
-            `UPDATE school_staff
-             SET display_name = $2, role = $3, class_level = NULL, stream = '',
-                 password_hash = $4, password_salt = $5, active = TRUE, updated_at = NOW()
-             WHERE id = $1
-             RETURNING id, email, display_name, active, created_at`,
-            [existing.rows[0].id, SYSTEM_ADMIN_ACTIVATION.displayName, SYSTEM_ADMIN_ROLE, hash, salt]
-          );
-          activated = rows[0];
+          activated = await promoteSystemAdminActivationAccount(existing.rows[0].id, password);
         } else {
+          const { salt, hash } = hashPassword(String(password));
           const { rows } = await pool.query(
             `INSERT INTO school_staff
                (email, display_name, role, class_level, stream, password_hash, password_salt, active)
@@ -4268,7 +4290,15 @@ app.post(
         return res.status(201).json({
           ok: true,
           system_admin_activated: true,
-          account: activated,
+          account: activated
+            ? {
+                id: activated.id,
+                email: activated.email,
+                display_name: activated.display_name,
+                active: activated.active,
+                created_at: activated.created_at,
+              }
+            : null,
         });
       }
       if (!roles.includes(String(role))) return res.status(400).json({ error: 'invalid role' });
