@@ -3605,29 +3605,85 @@
       refreshReportTemplate();
     });
   }
+  let promoReqDirty = false;
+  let promoReqAutosaveTimer = null;
+  let promoReqSaving = null;
+
   function syncPromotionRequirementsField(settings, term, period) {
-    reportPromotionRequirements = (settings && settings.promotionRequirements) || '';
     const show = String(term) === '3' && period === 'end';
     if (rpPromoReqWrap) rpPromoReqWrap.style.display = show ? '' : 'none';
     if (rpSavePromoReq) rpSavePromoReq.style.display = show ? '' : 'none';
+    if (promoReqDirty && rpPromoReqEl) {
+      reportPromotionRequirements = rpPromoReqEl.value.trim();
+      return;
+    }
+    reportPromotionRequirements = (settings && settings.promotionRequirements) || '';
     if (rpPromoReqEl && document.activeElement !== rpPromoReqEl) {
       rpPromoReqEl.value = reportPromotionRequirements.trim() || defaultPromotionRequirements(ctx.classLevel);
     }
   }
+
+  function updatePromotionRequirementsOnCards(text) {
+    const shown = String(text || '').trim() || defaultPromotionRequirements(ctx.classLevel);
+    Array.prototype.forEach.call(document.querySelectorAll('#rp-template .report-requirements'), function (p) {
+      p.innerHTML = '<strong>Requirements for next year:</strong> ' + escapeHtml(shown);
+    });
+  }
+
+  function setPromoReqButtonLabel(label) {
+    if (rpSavePromoReq) rpSavePromoReq.textContent = label;
+  }
+
+  async function savePromotionRequirements(showFlash) {
+    if (!rpPromoReqEl) return false;
+    if (promoReqAutosaveTimer) {
+      clearTimeout(promoReqAutosaveTimer);
+      promoReqAutosaveTimer = null;
+    }
+    if (promoReqSaving) await promoReqSaving.catch(function () {});
+    const text = rpPromoReqEl.value.trim();
+    const stored = text === defaultPromotionRequirements(ctx.classLevel) ? '' : text;
+    reportPromotionRequirements = stored;
+    updatePromotionRequirementsOnCards(stored);
+    if (rpSavePromoReq) rpSavePromoReq.disabled = true;
+    setPromoReqButtonLabel('Saving…');
+    promoReqSaving = saveReportSettingsPatch({ promotionRequirements: stored });
+    try {
+      const saved = await promoReqSaving;
+      if (String((saved && saved.promotionRequirements) || '') !== stored) throw new Error('mismatch');
+      if (rpPromoReqEl.value.trim() === text) promoReqDirty = false;
+      setPromoReqButtonLabel('Saved ✓');
+      setTimeout(function () { setPromoReqButtonLabel('Save requirements'); }, 1800);
+      if (showFlash && ctx.flash) {
+        ctx.flash(stored ? 'Requirements saved for this class report.' : 'Requirements reset to the default list.', true);
+      }
+      return true;
+    } catch (_) {
+      setPromoReqButtonLabel('Save requirements');
+      if (ctx.flash) ctx.flash('Could not save requirements. Check the connection and try again.', false);
+      return false;
+    } finally {
+      promoReqSaving = null;
+      if (rpSavePromoReq) rpSavePromoReq.disabled = false;
+    }
+  }
+
+  if (rpPromoReqEl) {
+    rpPromoReqEl.addEventListener('input', function () {
+      promoReqDirty = true;
+      setPromoReqButtonLabel('Save requirements');
+      updatePromotionRequirementsOnCards(rpPromoReqEl.value);
+      if (promoReqAutosaveTimer) clearTimeout(promoReqAutosaveTimer);
+      promoReqAutosaveTimer = setTimeout(function () {
+        promoReqAutosaveTimer = null;
+        savePromotionRequirements(false);
+      }, 1200);
+    });
+  }
   if (rpSavePromoReq && rpPromoReqEl) {
     rpSavePromoReq.addEventListener('click', async function () {
-      const text = rpPromoReqEl.value.trim();
-      const isDefault = text === defaultPromotionRequirements(ctx.classLevel);
-      try {
-        await saveReportSettingsPatch({ promotionRequirements: isDefault ? '' : text });
-      } catch (_) {
-        if (ctx.flash) ctx.flash('Could not save requirements.', false);
-        return;
-      }
-      if (ctx.flash) {
-        ctx.flash(text ? 'Requirements saved for this class report.' : 'Requirements reset to the default list.', true);
-      }
-      refreshReportTemplate();
+      const ok = await savePromotionRequirements(true);
+      if (ok) refreshReportTemplate();
     });
   }
   function selectedReportStudentId() {
