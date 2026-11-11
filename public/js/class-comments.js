@@ -3606,19 +3606,14 @@
     });
   }
   let promoReqDirty = false;
-  let promoReqAutosaveTimer = null;
-  let promoReqSaving = null;
+  let promoReqSaving = false;
 
   function syncPromotionRequirementsField(settings, term, period) {
     const show = String(term) === '3' && period === 'end';
     if (rpPromoReqWrap) rpPromoReqWrap.style.display = show ? '' : 'none';
     if (rpSavePromoReq) rpSavePromoReq.style.display = show ? '' : 'none';
-    if (promoReqDirty && rpPromoReqEl) {
-      reportPromotionRequirements = rpPromoReqEl.value.trim();
-      return;
-    }
     reportPromotionRequirements = (settings && settings.promotionRequirements) || '';
-    if (rpPromoReqEl && document.activeElement !== rpPromoReqEl) {
+    if (rpPromoReqEl && !promoReqDirty && document.activeElement !== rpPromoReqEl) {
       rpPromoReqEl.value = reportPromotionRequirements.trim() || defaultPromotionRequirements(ctx.classLevel);
     }
   }
@@ -3634,36 +3629,49 @@
     if (rpSavePromoReq) rpSavePromoReq.textContent = label;
   }
 
-  async function savePromotionRequirements(showFlash) {
-    if (!rpPromoReqEl) return false;
-    if (promoReqAutosaveTimer) {
-      clearTimeout(promoReqAutosaveTimer);
-      promoReqAutosaveTimer = null;
+  async function fetchStoredPromotionRequirements() {
+    const u = new URL('/api/report-settings', window.location.origin);
+    u.searchParams.set('classLevel', ctx.classLevel);
+    if (ctx.stream) u.searchParams.set('stream', ctx.stream);
+    const res = await fetch(u.toString(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('http');
+    const data = await res.json();
+    if (!data || !Object.prototype.hasOwnProperty.call(data, 'promotionRequirements')) {
+      throw new Error('outdated-server');
     }
-    if (promoReqSaving) await promoReqSaving.catch(function () {});
+    return String(data.promotionRequirements || '');
+  }
+
+  async function savePromotionRequirements() {
+    if (!rpPromoReqEl || promoReqSaving) return false;
     const text = rpPromoReqEl.value.trim();
     const stored = text === defaultPromotionRequirements(ctx.classLevel) ? '' : text;
-    reportPromotionRequirements = stored;
-    updatePromotionRequirementsOnCards(stored);
+    promoReqSaving = true;
     if (rpSavePromoReq) rpSavePromoReq.disabled = true;
     setPromoReqButtonLabel('Saving…');
-    promoReqSaving = saveReportSettingsPatch({ promotionRequirements: stored });
     try {
-      const saved = await promoReqSaving;
-      if (String((saved && saved.promotionRequirements) || '') !== stored) throw new Error('mismatch');
+      await saveReportSettingsPatch({ promotionRequirements: stored });
+      const confirmed = await fetchStoredPromotionRequirements();
+      if (confirmed !== stored) throw new Error('not-stored');
+      reportPromotionRequirements = stored;
+      updatePromotionRequirementsOnCards(stored);
       if (rpPromoReqEl.value.trim() === text) promoReqDirty = false;
       setPromoReqButtonLabel('Saved ✓');
       setTimeout(function () { setPromoReqButtonLabel('Save requirements'); }, 1800);
-      if (showFlash && ctx.flash) {
+      if (ctx.flash) {
         ctx.flash(stored ? 'Requirements saved for this class report.' : 'Requirements reset to the default list.', true);
       }
       return true;
-    } catch (_) {
+    } catch (err) {
       setPromoReqButtonLabel('Save requirements');
-      if (ctx.flash) ctx.flash('Could not save requirements. Check the connection and try again.', false);
+      const msg =
+        err && err.message === 'outdated-server'
+          ? 'Requirements were not saved: the school server is running an older version. Restart the app on the server (pm2 restart ocean-school), then save again.'
+          : 'Could not save requirements. Please try again.';
+      if (ctx.flash) ctx.flash(msg, false);
       return false;
     } finally {
-      promoReqSaving = null;
+      promoReqSaving = false;
       if (rpSavePromoReq) rpSavePromoReq.disabled = false;
     }
   }
@@ -3672,17 +3680,11 @@
     rpPromoReqEl.addEventListener('input', function () {
       promoReqDirty = true;
       setPromoReqButtonLabel('Save requirements');
-      updatePromotionRequirementsOnCards(rpPromoReqEl.value);
-      if (promoReqAutosaveTimer) clearTimeout(promoReqAutosaveTimer);
-      promoReqAutosaveTimer = setTimeout(function () {
-        promoReqAutosaveTimer = null;
-        savePromotionRequirements(false);
-      }, 1200);
     });
   }
   if (rpSavePromoReq && rpPromoReqEl) {
     rpSavePromoReq.addEventListener('click', async function () {
-      const ok = await savePromotionRequirements(true);
+      const ok = await savePromotionRequirements();
       if (ok) refreshReportTemplate();
     });
   }
