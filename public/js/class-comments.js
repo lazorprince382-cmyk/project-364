@@ -11,7 +11,7 @@
 
   const ctx = window.__oceanDashboard;
   const skillList = ctx.skillOnlySubjects || [];
-  const isPrimary = !!ctx.isPrimary;
+  let isPrimary = !!ctx.isPrimary;
   /** All primary marks are out of 100 (grading % = marks scored). */
   const MARKS_OUT_OF = 100;
 
@@ -1573,7 +1573,23 @@
       titleScale: 1,
       headingScale: 1,
       commentFontScale: 1,
+      promoScale: 1,
+      requirementsScale: 1,
+      promoOffsetXMm: 0,
+      promoOffsetYMm: 0,
     };
+  }
+
+  function clampPromoScale(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 1;
+    return Math.max(0.6, Math.min(1.8, n));
+  }
+
+  function clampPromoOffsetMm(v) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(-60, Math.min(60, n));
   }
 
   function clampTemplateOffset(v) {
@@ -1615,6 +1631,10 @@
       titleScale: clampSectionFontScale(src.titleScale),
       headingScale: clampSectionFontScale(src.headingScale),
       commentFontScale: clampSectionFontScale(src.commentFontScale),
+      promoScale: clampPromoScale(src.promoScale),
+      requirementsScale: clampPromoScale(src.requirementsScale),
+      promoOffsetXMm: clampPromoOffsetMm(src.promoOffsetXMm),
+      promoOffsetYMm: clampPromoOffsetMm(src.promoOffsetYMm),
     };
   }
 
@@ -1673,6 +1693,7 @@
     const fontFamily = REPORT_FONT_FAMILIES[String(src.fontFamily || '').trim()] != null ? String(src.fontFamily || '').trim() : 'default';
     return {
       nextTermBegins: src.nextTermBegins != null ? String(src.nextTermBegins) : '',
+      promotionRequirements: src.promotionRequirements != null ? String(src.promotionRequirements) : '',
       fontScale: fontScale,
       templatePath: src.templatePath != null ? String(src.templatePath) : '',
       fontFamily: fontFamily || 'default',
@@ -1685,6 +1706,8 @@
     const next = patch && typeof patch === 'object' ? patch : {};
     const merged = {
       nextTermBegins: next.nextTermBegins != null ? String(next.nextTermBegins) : base.nextTermBegins,
+      promotionRequirements:
+        next.promotionRequirements != null ? String(next.promotionRequirements) : base.promotionRequirements,
       fontScale: next.fontScale != null ? next.fontScale : base.fontScale,
       templatePath: next.templatePath != null ? String(next.templatePath) : base.templatePath,
       fontFamily: next.fontFamily != null ? String(next.fontFamily) : base.fontFamily,
@@ -1772,6 +1795,10 @@
       card.style.setProperty('--rp-title-scale', String(normalized.layout.titleScale || 1));
       card.style.setProperty('--rp-heading-scale', String(normalized.layout.headingScale || 1));
       card.style.setProperty('--rp-comment-scale', String(normalized.layout.commentFontScale || 1));
+      card.style.setProperty('--rp-promo-scale', String(normalized.layout.promoScale || 1));
+      card.style.setProperty('--rp-req-scale', String(normalized.layout.requirementsScale || 1));
+      card.style.setProperty('--rp-promo-x', String(normalized.layout.promoOffsetXMm || 0));
+      card.style.setProperty('--rp-promo-y', String(normalized.layout.promoOffsetYMm || 0));
       const commentsBlock = card.querySelector('.baby-bottom-comments, .primary-comments, .report-comments');
       if (commentsBlock) {
         commentsBlock.style.transformOrigin = 'top left';
@@ -1814,6 +1841,14 @@
     if (rpCommentsFontRangeValue) rpCommentsFontRangeValue.textContent = reportFontScaleLabel(normalized.commentFontScale || 1);
     if (rpCommentGapRange) rpCommentGapRange.value = String(normalized.commentGapMm != null ? normalized.commentGapMm : 4);
     if (rpCommentGapValue) rpCommentGapValue.textContent = String(normalized.commentGapMm != null ? normalized.commentGapMm : 4) + 'mm';
+    if (rpPromoRange) rpPromoRange.value = String(normalized.promoScale);
+    if (rpPromoValue) rpPromoValue.textContent = reportFontScaleLabel(normalized.promoScale);
+    if (rpReqRange) rpReqRange.value = String(normalized.requirementsScale);
+    if (rpReqValue) rpReqValue.textContent = reportFontScaleLabel(normalized.requirementsScale);
+    if (rpPromoXRange) rpPromoXRange.value = String(normalized.promoOffsetXMm);
+    if (rpPromoXValue) rpPromoXValue.textContent = String(normalized.promoOffsetXMm) + 'mm';
+    if (rpPromoYRange) rpPromoYRange.value = String(normalized.promoOffsetYMm);
+    if (rpPromoYValue) rpPromoYValue.textContent = String(normalized.promoOffsetYMm) + 'mm';
   }
 
   function orderedSubjectsFromGrid(gridEl) {
@@ -2046,6 +2081,55 @@
     return periodWord + ' ' + termWord + ' ' + String(reportYear || new Date().getFullYear());
   }
 
+  const NURSERY_LEVELS = ['daycare', 'baby', 'middle', 'top'];
+  const NUMBER_WORDS = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
+
+  function classTitleForLevel(level) {
+    const id = String(level || '').trim().toLowerCase();
+    const cfg = (window.OCEAN_CLASSES || []).find(function (c) { return c.id === id; });
+    if (cfg && cfg.title) return cfg.title;
+    if (ctx.titles && ctx.titles[id]) return ctx.titles[id];
+    const m = /^primary(\d+)$/.exec(id);
+    if (m) return 'Primary ' + (NUMBER_WORDS[Number(m[1])] || m[1]);
+    return id;
+  }
+
+  function nextPromotionLevel(level) {
+    const id = String(level || '').trim().toLowerCase();
+    const ladder = { daycare: 'baby', baby: 'middle', middle: 'top', top: 'primary1' };
+    if (ladder[id]) return ladder[id];
+    const m = /^primary(\d+)$/.exec(id);
+    if (m) return 'primary' + (Number(m[1]) + 1);
+    return '';
+  }
+
+  let reportPromotionRequirements = '';
+
+  function defaultPromotionRequirements(level) {
+    const isNursery = NURSERY_LEVELS.indexOf(String(level || '').toLowerCase()) !== -1;
+    const items = isNursery
+      ? '1 Double A ream, 1 dozen of 96 Picfare books, 1 packet of Nataraj pencils, 1 packet of coloured Jumbo pencils.'
+      : '1 Double A ream, 1 dozen of 96 Picfare books, 1 packet of Nataraj pencils.';
+    return items + ' Handwriting book, spring file and art book are bought at school together at 5,000/=.';
+  }
+
+  function promotionFooterHtml(term, period) {
+    if (String(term) !== '3' || period !== 'end') return '';
+    const nextLevel = nextPromotionLevel(ctx.classLevel);
+    const promoted = nextLevel
+      ? '<p class="report-promotion">PROMOTED TO ' + escapeHtml(classTitleForLevel(nextLevel).toUpperCase()) + '</p>'
+      : '';
+    const requirements = String(reportPromotionRequirements || '').trim() || defaultPromotionRequirements(ctx.classLevel);
+    return (
+      '<div class="report-promotion-footer">' +
+      promoted +
+      '<p class="report-requirements"><strong>Requirements for next year:</strong> ' +
+      escapeHtml(requirements) +
+      '</p>' +
+      '</div>'
+    );
+  }
+
   function primaryGradeScaleHtml() {
     const bands = normalizeBandsClient(gradingBands)
       .slice()
@@ -2224,6 +2308,7 @@
         (period === 'end'
           ? '<p class="baby-next-term">Next term begins: <span>' + escapeHtml(nextTermBegins || '—') + '</span></p>'
           : '') +
+        promotionFooterHtml(term, period) +
         '</div>' +
         '</div>'
       );
@@ -2330,7 +2415,10 @@
         '<section class="baby-subjects-grid">' +
         cards +
         '</section>' +
-        '<div class="baby-bottom-comments' + (period !== 'end' ? ' no-next-term' : '') + '">' +
+        '<div class="baby-bottom-comments' +
+        (period !== 'end' ? ' no-next-term' : '') +
+        (String(term) === '3' && period === 'end' ? ' has-promotion' : '') +
+        '">' +
         '<div class="baby-comment-sign-row">' +
         '<p><strong>Class teacher\'s comment:</strong> ' +
         escapeHtml(ctBy[student.id] || '') +
@@ -2348,6 +2436,7 @@
             escapeHtml(nextTermBegins || '—') +
             '</span></p>'
           : '') +
+        promotionFooterHtml(term, period) +
         '</div>' +
         '</div>'
       );
@@ -2438,6 +2527,7 @@
           escapeHtml(nextTermBegins || '—') +
           '</p>'
         : '') +
+      promotionFooterHtml(term, period) +
       '</div>'
     );
   }
@@ -2519,6 +2609,7 @@
       if (nextTermSaveBtn) nextTermSaveBtn.style.display = isEndPeriod ? '' : 'none';
       if (document.activeElement !== nextTermEl) nextTermEl.value = nextTermBegins;
     }
+    syncPromotionRequirementsField(reportSettings, term, period);
     if (templateOpen) {
       if (templatePath) {
         templateOpen.href = templatePath;
@@ -2569,6 +2660,7 @@
         fontScale = reportSettings.fontScale != null ? Number(reportSettings.fontScale) : 1;
         templatePath = reportSettings.templatePath || templatePath;
         if (nextTermEl && document.activeElement !== nextTermEl) nextTermEl.value = nextTermBegins;
+        syncPromotionRequirementsField(reportSettings, term, period);
         if (templateOpen) {
           if (templatePath) {
             templateOpen.href = templatePath;
@@ -2884,6 +2976,17 @@
   const rpCommentGapValue = document.getElementById('rp-comment-gap-value');
   const rpCommentGapDec = document.getElementById('rp-comment-gap-dec');
   const rpCommentGapInc = document.getElementById('rp-comment-gap-inc');
+  const rpPromoRange = document.getElementById('rp-promo-range');
+  const rpPromoValue = document.getElementById('rp-promo-value');
+  const rpReqRange = document.getElementById('rp-req-range');
+  const rpReqValue = document.getElementById('rp-req-value');
+  const rpPromoXRange = document.getElementById('rp-promo-x-range');
+  const rpPromoXValue = document.getElementById('rp-promo-x-value');
+  const rpPromoYRange = document.getElementById('rp-promo-y-range');
+  const rpPromoYValue = document.getElementById('rp-promo-y-value');
+  const rpPromoReqEl = document.getElementById('rp-promo-req');
+  const rpSavePromoReq = document.getElementById('rp-save-promo-req');
+  const rpPromoReqWrap = document.getElementById('rp-promo-req-wrap');
   const rpValidate = document.getElementById('rp-validate');
   const rpValidateOut = document.getElementById('rp-validate-out');
   const rpApprovalState = document.getElementById('rp-approval-state');
@@ -3502,6 +3605,31 @@
       refreshReportTemplate();
     });
   }
+  function syncPromotionRequirementsField(settings, term, period) {
+    reportPromotionRequirements = (settings && settings.promotionRequirements) || '';
+    const show = String(term) === '3' && period === 'end';
+    if (rpPromoReqWrap) rpPromoReqWrap.style.display = show ? '' : 'none';
+    if (rpSavePromoReq) rpSavePromoReq.style.display = show ? '' : 'none';
+    if (rpPromoReqEl && document.activeElement !== rpPromoReqEl) {
+      rpPromoReqEl.value = reportPromotionRequirements.trim() || defaultPromotionRequirements(ctx.classLevel);
+    }
+  }
+  if (rpSavePromoReq && rpPromoReqEl) {
+    rpSavePromoReq.addEventListener('click', async function () {
+      const text = rpPromoReqEl.value.trim();
+      const isDefault = text === defaultPromotionRequirements(ctx.classLevel);
+      try {
+        await saveReportSettingsPatch({ promotionRequirements: isDefault ? '' : text });
+      } catch (_) {
+        if (ctx.flash) ctx.flash('Could not save requirements.', false);
+        return;
+      }
+      if (ctx.flash) {
+        ctx.flash(text ? 'Requirements saved for this class report.' : 'Requirements reset to the default list.', true);
+      }
+      refreshReportTemplate();
+    });
+  }
   function selectedReportStudentId() {
     return rpStudent && rpStudent.value && rpStudent.value !== '__all__' ? rpStudent.value : '';
   }
@@ -3532,6 +3660,7 @@
       classLevel: ctx.classLevel,
       stream: ctx.stream || '',
       nextTermBegins: merged.nextTermBegins || '',
+      promotionRequirements: merged.promotionRequirements || '',
       fontScale: merged.fontScale != null ? merged.fontScale : 1,
       templatePath: merged.templatePath || '',
       fontFamily: merged.fontFamily || 'default',
@@ -3650,6 +3779,10 @@
         commentGapMm: rpCommentGapRange
           ? Number(rpCommentGapRange.value)
           : base.layout.commentGapMm,
+        promoScale: rpPromoRange ? Number(rpPromoRange.value || 1) : base.layout.promoScale,
+        requirementsScale: rpReqRange ? Number(rpReqRange.value || 1) : base.layout.requirementsScale,
+        promoOffsetXMm: rpPromoXRange ? Number(rpPromoXRange.value || 0) : base.layout.promoOffsetXMm,
+        promoOffsetYMm: rpPromoYRange ? Number(rpPromoYRange.value || 0) : base.layout.promoOffsetYMm,
       },
     });
   }
@@ -3696,7 +3829,7 @@
     });
   }
 
-  [rpFontRange, rpFontToolbarRange, rpSubjectOffsetX, rpSubjectOffsetY, rpCommentsOffsetX, rpCommentsOffsetY, rpBadgeRange, rpMetaRange, rpMetaXRange, rpMetaWidthRange, rpPhotoSizeRange, rpPhotoXRange, rpPhotoYRange, rpTitleRange, rpHeadingRange, rpCommentsFontRange, rpCommentGapRange].forEach(function (el) {
+  [rpFontRange, rpFontToolbarRange, rpSubjectOffsetX, rpSubjectOffsetY, rpCommentsOffsetX, rpCommentsOffsetY, rpBadgeRange, rpMetaRange, rpMetaXRange, rpMetaWidthRange, rpPhotoSizeRange, rpPhotoXRange, rpPhotoYRange, rpTitleRange, rpHeadingRange, rpCommentsFontRange, rpCommentGapRange, rpPromoRange, rpReqRange, rpPromoXRange, rpPromoYRange].forEach(function (el) {
     if (!el) return;
     el.addEventListener('input', previewReportTemplateControls);
   });
@@ -3838,7 +3971,7 @@
       }
     });
   }
-  [rpMetaRange, rpMetaXRange, rpMetaWidthRange, rpPhotoSizeRange, rpPhotoXRange, rpPhotoYRange, rpTitleRange, rpHeadingRange, rpCommentsFontRange].forEach(function (el) {
+  [rpMetaRange, rpMetaXRange, rpMetaWidthRange, rpPhotoSizeRange, rpPhotoXRange, rpPhotoYRange, rpTitleRange, rpHeadingRange, rpCommentsFontRange, rpPromoRange, rpReqRange, rpPromoXRange, rpPromoYRange].forEach(function (el) {
     if (!el) return;
     el.addEventListener('change', async function () {
       const draft = currentReportTemplateDraft();
@@ -3848,6 +3981,30 @@
       } catch (_) {
         if (ctx.flash) ctx.flash('Could not save section font size.', false);
       }
+    });
+  });
+  let promoNudgeSaveTimer = null;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-promo-nudge]'), function (btn) {
+    btn.addEventListener('click', function () {
+      const input = document.getElementById(btn.getAttribute('data-promo-nudge'));
+      if (!input) return;
+      const step = Number(btn.getAttribute('data-step')) || 0;
+      const min = Number(input.min);
+      const max = Number(input.max);
+      const next = Math.max(min, Math.min(max, Math.round((Number(input.value) + step) * 100) / 100));
+      input.value = String(next);
+      previewReportTemplateControls();
+      if (promoNudgeSaveTimer) clearTimeout(promoNudgeSaveTimer);
+      promoNudgeSaveTimer = setTimeout(async function () {
+        promoNudgeSaveTimer = null;
+        const draft = currentReportTemplateDraft();
+        try {
+          await saveReportSettingsPatch({ layout: draft.layout });
+          currentReportSettings = mergeReportSettingsLocal(currentReportSettings || {}, { layout: draft.layout });
+        } catch (_) {
+          if (ctx.flash) ctx.flash('Could not save promotion text layout.', false);
+        }
+      }, 400);
     });
   });
   async function nudgeReportCommentGap(delta) {
@@ -4039,6 +4196,7 @@
     const term = String(opts.term || '1');
     const period = String(opts.period || 'mid');
     const year = String(opts.year || new Date().getFullYear());
+    const promotionRequirementsBackup = reportPromotionRequirements;
     const backup = {
       classLevel: ctx.classLevel,
       stream: ctx.stream,
@@ -4054,6 +4212,7 @@
     ctx.streamLabels = opts.streamLabels || ctx.streamLabels || {};
     ctx.subjects = (opts.subjects || []).slice();
     ctx.isPrimary = !!opts.isPrimary;
+    isPrimary = ctx.isPrimary;
     ctx.skillOnlySubjects = opts.skillOnlySubjects || ctx.skillOnlySubjects || [];
 
     function urlWithYear(base, path, extra) {
@@ -4130,6 +4289,7 @@
       fh.forEach(function (r) { headBy[r.student_id] = r.body || ''; });
       fct.forEach(function (r) { ctBy[r.student_id] = r.body || ''; });
       const nextTermBegins = period === 'end' ? reportSettings.nextTermBegins || '' : '';
+      reportPromotionRequirements = reportSettings.promotionRequirements || '';
       targetEl.innerHTML = buildStudentReportHtml(
         student,
         subjectCols,
@@ -4150,6 +4310,8 @@
       targetEl.innerHTML = '<p class="ll-muted">Could not load report preview.</p>';
     } finally {
       Object.assign(ctx, backup);
+      isPrimary = !!ctx.isPrimary;
+      reportPromotionRequirements = promotionRequirementsBackup;
     }
   }
 

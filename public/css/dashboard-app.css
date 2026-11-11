@@ -3138,6 +3138,52 @@ body.app-director .dash-notify-btn:disabled {
   font-weight: 700;
 }
 
+.baby-report-card .baby-bottom-comments.has-promotion {
+  margin-bottom: 2mm;
+}
+
+.baby-report-card .baby-bottom-comments.has-promotion .baby-next-term {
+  margin-top: 1mm;
+}
+
+.report-promotion-footer {
+  margin-top: 1.5mm;
+  padding-right: 30mm;
+  text-align: center;
+  transform: translate(calc(var(--rp-promo-x, 0) * 1mm), calc(var(--rp-promo-y, 0) * 1mm));
+}
+
+.report-promotion-footer .report-promotion {
+  margin: 0 0 1.5mm;
+  color: #c20000;
+  font-size: calc(4.6mm * var(--rp-comment-scale, 1) * var(--rp-promo-scale, 1));
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-decoration: underline;
+}
+
+.report-promotion-footer .report-requirements {
+  margin: 0;
+  color: #0a215c;
+  font-size: calc(3.1mm * var(--rp-comment-scale, 1) * var(--rp-req-scale, 1));
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.report-promotion-footer .report-requirements strong {
+  color: #0a215c;
+}
+
+.report-promo-req-field {
+  flex: 1 1 360px;
+  min-width: 280px;
+}
+
+.report-promo-req-field textarea {
+  width: 100%;
+  resize: vertical;
+}
+
 @media print {
   @page {
     size: A4 portrait;

@@ -4934,6 +4934,18 @@ app.get(
   })
 );
 
+function normalizePromotionLayout(rawLayout) {
+  const src = rawLayout && typeof rawLayout === 'object' ? rawLayout : {};
+  const clamp = (v, min, max, dflt) =>
+    v != null && Number.isFinite(Number(v)) ? Math.max(min, Math.min(max, Number(v))) : dflt;
+  return {
+    promoScale: clamp(src.promoScale, 0.6, 1.8, 1),
+    requirementsScale: clamp(src.requirementsScale, 0.6, 1.8, 1),
+    promoOffsetXMm: clamp(src.promoOffsetXMm, -60, 60, 0),
+    promoOffsetYMm: clamp(src.promoOffsetYMm, -60, 60, 0),
+  };
+}
+
 app.get(
   '/api/report-settings',
   asyncRoute(async (req, res) => {
@@ -4984,6 +4996,7 @@ app.get(
       }
     }
     let nextTermBegins = '';
+    let promotionRequirements = '';
     let fontScale = 1;
     let templatePath = '';
     let fontFamily = 'default';
@@ -5004,10 +5017,13 @@ app.get(
       titleScale: 1,
       headingScale: 1,
       commentFontScale: 1,
+      ...normalizePromotionLayout({}),
     };
     if (storedSettings && typeof storedSettings === 'object') {
       nextTermBegins =
         storedSettings.nextTermBegins != null ? String(storedSettings.nextTermBegins) : '';
+      promotionRequirements =
+        storedSettings.promotionRequirements != null ? String(storedSettings.promotionRequirements) : '';
       fontScale =
         storedSettings.fontScale != null ? Number(storedSettings.fontScale) : 1;
       if (Number.isNaN(fontScale) || fontScale < 0.8 || fontScale > 1.6) fontScale = 1;
@@ -5083,6 +5099,7 @@ app.get(
           rawLayout.commentFontScale != null && Number.isFinite(Number(rawLayout.commentFontScale))
             ? Math.max(0.75, Math.min(1.45, Number(rawLayout.commentFontScale)))
             : 1,
+        ...normalizePromotionLayout(rawLayout),
       };
     }
     // If a stream-specific report has no template yet, reuse any template
@@ -5106,7 +5123,17 @@ app.get(
     if (!['default', 'calibri', 'georgia', 'verdana', 'trebuchet', 'times'].includes(fontFamily)) {
       fontFamily = 'default';
     }
-    res.json({ classLevel, stream, studentId: sid || null, nextTermBegins, fontScale, templatePath, fontFamily, layout });
+    res.json({
+      classLevel,
+      stream,
+      studentId: sid || null,
+      nextTermBegins,
+      promotionRequirements,
+      fontScale,
+      templatePath,
+      fontFamily,
+      layout,
+    });
   })
 );
 
@@ -5126,6 +5153,10 @@ app.put(
     const nextTermBegins =
       req.body && req.body.nextTermBegins != null
         ? String(req.body.nextTermBegins).slice(0, 120)
+        : '';
+    const promotionRequirements =
+      req.body && req.body.promotionRequirements != null
+        ? String(req.body.promotionRequirements).trim().slice(0, 600)
         : '';
     let fontScale =
       req.body && req.body.fontScale != null ? Number(req.body.fontScale) : 1;
@@ -5203,12 +5234,13 @@ app.put(
         rawLayout.commentFontScale != null && Number.isFinite(Number(rawLayout.commentFontScale))
           ? Math.max(0.75, Math.min(1.45, Number(rawLayout.commentFontScale)))
           : 1,
+      ...normalizePromotionLayout(rawLayout),
     };
     const templatePath =
       req.body && req.body.templatePath != null ? String(req.body.templatePath).slice(0, 500) : '';
     const baseKey = `report_next_term_${classLevel}_${stream || '_'}`;
     const key = sid && Number.isFinite(sid) ? `${baseKey}_student_${sid}` : baseKey;
-    const savedSettings = { nextTermBegins, fontScale, templatePath, fontFamily, layout };
+    const savedSettings = { nextTermBegins, promotionRequirements, fontScale, templatePath, fontFamily, layout };
     await pool.query(
       `INSERT INTO app_settings (key, value) VALUES ($1, $2::jsonb)
        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
